@@ -185,8 +185,8 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== SUPABASE (chaves já embutidas) =====
-const supabase = window.supabase.createClient(
+// ===== SUPABASE (variável renomeada para evitar conflito com o CDN) =====
+const sb = window.supabase.createClient(
   'https://odhzkaxdmszjsidhozua.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kaHprYXhkbXN6anNpZGhvemFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMjQ2NjYsImV4cCI6MjExMDcwMDY2Nn0.KUnIbPmOxkbwriIR3VaeAjP5SUWNiTFVhaKiAMR9PTs'
 );
@@ -198,7 +198,7 @@ const fmt = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!
 
 // ===== AUTH =====
 async function checkAuth(){
-  const { data:{ user } } = await supabase.auth.getUser();
+  const { data:{ user } } = await sb.auth.getUser();
   if(user){
     S.userId = user.id;
     S.userMail = user.email;
@@ -218,7 +218,7 @@ async function login(){
   const email = document.getElementById('loginEmail').value.trim();
   const senha = document.getElementById('loginSenha').value;
   if(!email||!senha){ toast('⚠️ Preencha e-mail e senha'); return; }
-  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  const { error } = await sb.auth.signInWithPassword({ email, password: senha });
   if(error){ toast('❌ '+error.message); return; }
   toast('✅ Bem-vinda de volta!');
   checkAuth();
@@ -229,14 +229,14 @@ async function registrar(){
   const senha = document.getElementById('regSenha').value;
   if(!email||!senha){ toast('⚠️ Preencha tudo'); return; }
   if(senha.length<6){ toast('⚠️ Senha mínimo 6 caracteres'); return; }
-  const { error } = await supabase.auth.signUp({ email, password: senha });
+  const { error } = await sb.auth.signUp({ email, password: senha });
   if(error){ toast('❌ '+error.message); return; }
-  document.getElementById('regMsg').textContent = '✅ Conta criada! Verifique seu e-mail ('+email+') e clique no link de confirmação antes de logar.';
-  toast('📧 Confira seu e-mail!');
+  document.getElementById('regMsg').textContent = '✅ Conta criada! Pode entrar agora.';
+  toast('🎉 Conta criada com sucesso!');
 }
 
 async function logout(){
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   S = { meta:0, n:60, maxDep:50, depositado:0, hist:[], userId:null, userMail:'' };
   document.getElementById('telaLogin').style.display='block';
   document.getElementById('telaApp').style.display='none';
@@ -245,7 +245,7 @@ async function logout(){
 // ===== PERSISTÊNCIA =====
 async function salvarCofre(){
   if(!S.userId) return;
-  const { error } = await supabase.from('cofres').upsert({
+  const { error } = await sb.from('cofres').upsert({
     user_id: S.userId,
     meta: S.meta,
     max_dep: S.maxDep,
@@ -257,7 +257,7 @@ async function salvarCofre(){
 }
 
 async function carregarCofre(){
-  const { data, error } = await supabase.from('cofres').select('*').eq('user_id', S.userId).maybeSingle();
+  const { data, error } = await sb.from('cofres').select('*').eq('user_id', S.userId).maybeSingle();
   if(data && !error){
     S.meta = data.meta; S.maxDep = data.max_dep; S.n = data.n_cells;
     S.depositado = data.depositado; S.hist = data.hist || [];
@@ -294,7 +294,7 @@ function criar(){
 function mostrarSetup(){ document.getElementById('telaSetup').style.display='block'; document.getElementById('telaCofre').style.display='none'; }
 function mostrarCofre(){ document.getElementById('telaSetup').style.display='none'; document.getElementById('telaCofre').style.display='block'; render(); }
 
-// ===== ALGORITMO GRID (com teto) =====
+// ===== ALGORITMO GRID =====
 function gerarGrid(restante, n, maxDep){
   if(restante<=0) return [];
   if(restante<STEP) return [Math.round(restante*100)/100];
