@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cofre Digital Rai$$a</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:linear-gradient(135deg,#1a0a00,#2d1810,#1a0a00);min-height:100vh;color:#f5e6d3;padding:16px}
+.container{max-width:920px;margin:0 auto}
+.header{text-align:center;padding:24px 16px;background:linear-gradient(145deg,#3d2215,#5a3520);border-radius:16px;border:2px solid #8B6914;box-shadow:0 8px 32px rgba(0,0,0,.5);margin-bottom:20px}
+.header h1{font-size:2.2em;color:#FFD700;text-shadow:2px 2px 4px rgba(0,0,0,.5);letter-spacing:3px}
+.header h1 span{color:#FFA500}
+.header p{color:#c9a87c;margin-top:6px;font-style:italic}
+.card{background:linear-gradient(145deg,#3d2215,#4a2a1a);border-radius:16px;border:2px solid #8B6914;padding:22px 26px;margin-bottom:20px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.card h2{color:#FFD700;margin-bottom:16px;font-size:1.25em}
+label{display:block;margin-bottom:6px;color:#c9a87c;font-size:.9em}
+input[type=number],input[type=email],input[type=password]{padding:12px 14px;border:2px solid #8B6914;border-radius:8px;background:#1a0a00;color:#FFD700;font-size:1.05em;outline:none;width:100%}
+input:focus{border-color:#FFD700}
+input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
+.btn{padding:12px 22px;border:none;border-radius:8px;font-size:.95em;font-weight:bold;cursor:pointer;transition:all .25s;text-transform:uppercase;letter-spacing:1px}
+.btn-primary{background:linear-gradient(145deg,#FFD700,#FFA500);color:#1a0a00}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(255,215,0,.4)}
+.btn-green{background:linear-gradient(145deg,#4CAF50,#2d8a2d);color:#fff}
+.btn-gray{background:linear-gradient(145deg,#666,#444);color:#fff}
+.btn-blue{background:linear-gradient(145deg,#2196F3,#0d47a1);color:#fff}
+.btn-red{background:linear-gradient(145deg,#dc3545,#a71d2a);color:#fff;font-size:.8em;padding:8px 14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:140px}
+.pbar{width:100%;height:28px;background:#1a0a00;border-radius:14px;overflow:hidden;border:2px solid #8B6914;margin:12px 0}
+.pfill{height:100%;background:linear-gradient(90deg,#FFD700,#FFA500,#FF8C00);border-radius:14px;transition:width .5s;display:flex;align-items:center;justify-content:center;color:#1a0a00;font-weight:bold;font-size:.85em;min-width:2px}
+.info{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.info .v{color:#FFD700;font-weight:bold;font-size:1.15em}
+.info .l{color:#c9a87c;font-size:.85em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px;padding:14px;background:#2a1508;border-radius:12px;border:1px solid #5a3520;max-height:500px;overflow-y:auto}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#f5deb3,#deb887);border:2px solid #8B6914;border-radius:8px;font-weight:bold;color:#3d2215;font-size:.82em;cursor:pointer;transition:all .15s;user-select:none}
+.cell:hover{transform:scale(1.12);box-shadow:0 0 12px rgba(255,215,0,.5);border-color:#FFD700}
+.cell.big{background:linear-gradient(145deg,#ffd27a,#e8a84c)}
+.hist{max-height:180px;overflow-y:auto;font-size:.85em}
+.hist div{padding:6px 10px;border-bottom:1px solid #5a3520;display:flex;justify-content:space-between;color:#c9a87c}
+.hist div b{color:#4CAF50}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal.on{display:flex}
+.mbox{background:linear-gradient(145deg,#3d2215,#4a2a1a);border:2px solid #8B6914;border-radius:16px;padding:28px;max-width:420px;width:100%}
+.mbox h3{color:#FFD700;margin-bottom:14px}
+.mbox p{color:#c9a87c;margin-bottom:14px;font-size:.92em}
+.celeb{display:none;text-align:center;padding:34px;background:linear-gradient(145deg,#2d8a2d,#1a6b1a);border-radius:16px;border:2px solid #4CAF50;margin-bottom:20px;animation:pulse 2s infinite}
+.celeb.on{display:block}
+.celeb h2{color:#FFD700;font-size:1.8em;margin-bottom:8px}
+@keyframes pulse{0%,100%{box-shadow:0 0 20px rgba(76,175,80,.3)}50%{box-shadow:0 0 40px rgba(76,175,80,.6)}}
+.toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,150%);background:linear-gradient(145deg,#4CAF50,#2d8a2d);color:#fff;padding:12px 22px;border-radius:10px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,.4);transition:transform .4s;z-index:2000;white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.hint{color:#c9a87c;font-size:.8em;margin:6px 0 14px}
+.tag{display:inline-block;background:#1a0a00;border:1px solid #8B6914;border-radius:6px;padding:4px 10px;color:#FFD700;font-size:.85em;margin:2px}
+.userbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.userbar .mail{color:#c9a87c;font-size:.9em}
+.userbar .mail b{color:#FFD700}
+.footer{text-align:center;padding:14px;color:#8B6914;font-size:.82em}
+@media(max-width:600px){.header h1{font-size:1.5em}.grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:4px}.cell{font-size:.72em}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+<h1>🏦 Cofre <span>Rai$$a</span></h1>
+<p>"Pequenos passos hoje, grandes conquistas amanhã."</p>
+</div>
+
+<div class="celeb" id="celeb">
+<h2>🎉🏆 META ALCANÇADA! 🏆🎉</h2>
+<p>Você completou seu desafio de <b id="celebV"></b>!</p>
+</div>
+
+<!-- TELA LOGIN -->
+<div id="telaLogin" class="card">
+<h2>🔐 Entrar ou Criar Conta</h2>
+<div style="display:grid;gap:12px;max-width:420px">
+<div>
+<label>E-mail</label>
+<input type="email" id="loginEmail" placeholder="seu@email.com">
+</div>
+<div>
+<label>Senha</label>
+<input type="password" id="loginSenha" placeholder="••••••••">
+</div>
+<button class="btn btn-primary" id="btnLogin">🔑 Entrar</button>
+<hr style="border-color:#5a3520;margin:10px 0">
+<p style="color:#c9a87c;font-size:.9em">Novo por aqui?</p>
+<div>
+<input type="email" id="regEmail" placeholder="seu@email.com">
+</div>
+<div>
+<input type="password" id="regSenha" placeholder="Mínimo 6 caracteres">
+</div>
+<button class="btn btn-green" id="btnReg">📝 Criar conta</button>
+<p id="regMsg" style="color:#FFD700;font-size:.85em"></p>
+</div>
+</div>
+
+<!-- APP -->
+<div id="telaApp" style="display:none">
+
+<!-- SETUP -->
+<div class="card" id="telaSetup" style="display:none">
+<div class="userbar">
+<h2 style="margin:0">⚙️ Configurar Meta</h2>
+<div><span class="mail">👤 <b id="userMail"></b></span> <button class="btn btn-red" onclick="logout()">🚪 Sair</button></div>
+</div>
+<div class="row">
+<div class="grow">
+<label>Valor da meta (R$)</label>
+<input type="number" id="meta" placeholder="Ex: 10000" min="10" step="0.01">
+</div>
+<div class="grow">
+<label>⭐ Valor MÁXIMO por depósito (R$)</label>
+<input type="number" id="maxDep" placeholder="Ex: 50" min="5" step="1" value="50">
+</div>
+</div>
+<label style="margin-top:14px">Quantidade de depósitos: <b id="nLabel" style="color:#FFD700">—</b></label>
+<input type="range" id="nCells" min="20" max="200" value="60">
+<p class="hint" id="nHint"></p>
+<button class="btn btn-primary" onclick="criar()">🔨 Criar Cofre Rai$$a</button>
+</div>
+
+<!-- COFRE -->
+<div id="telaCofre" style="display:none">
+<div class="card">
+<div class="userbar">
+<h2 style="margin:0">🏦 Meu Cofre</h2>
+<div><span class="mail">👤 <b id="userMail2"></b></span> <button class="btn btn-red" onclick="logout()">🚪 Sair</button></div>
+</div>
+<div class="info">
+<div><span class="l">Meta</span><br><span class="v" id="dMeta"></span></div>
+<div><span class="l">Depositado</span><br><span class="v" style="color:#4CAF50" id="dDep"></span></div>
+<div><span class="l">Falta</span><br><span class="v" id="dFalta"></span></div>
+</div>
+<div class="pbar"><div class="pfill" id="pfill" style="width:0%"><span id="ppct">0%</span></div></div>
+<div style="margin:8px 0">
+<span class="tag" id="tagMax"></span>
+<span class="tag" id="tagN"></span>
+</div>
+<div class="row">
+<button class="btn btn-green grow" onclick="abrirLivre()">💰 Depósito Livre</button>
+<button class="btn btn-gray" onclick="desfazer()">↩️ Desfazer</button>
+<button class="btn btn-red" onclick="resetar()">🔄 Resetar</button>
+</div>
+<div class="row" style="margin-top:10px">
+<button class="btn btn-blue" onclick="exportarBackup()">💾 Exportar Backup</button>
+<button class="btn btn-blue" onclick="document.getElementById('importFile').click()">📂 Importar Backup</button>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importarBackup(event)">
+</div>
+</div>
+
+<div class="card">
+<h2>📋 Como dividir o que falta <span style="font-size:.7em;color:#c9a87c;font-weight:normal" id="gridSub"></span></h2>
+<div class="grid" id="grid"></div>
+</div>
+
+<div class="card">
+<h2>📜 Histórico</h2>
+<div class="hist" id="hist"></div>
+</div>
+</div>
+
+</div>
+
+<div class="footer">🏆 Comece agora o seu Desafio de Economia com o Cofre Rai$$a!</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+<div class="mbox">
+<h3>💰 Depósito Livre</h3>
+<p id="modalInfo"></p>
+<input type="number" id="depVal" placeholder="Ex: 37" min="0.01" step="0.01" style="font-size:1.3em;text-align:center">
+<div class="row" style="margin-top:18px;justify-content:center">
+<button class="btn btn-green" onclick="depositarLivre()">✅ Confirmar</button>
+<button class="btn btn-gray" onclick="fecharModal()">❌ Cancelar</button>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== SUPABASE (chaves já embutidas) =====
+const supabase = window.supabase.createClient(
+  'https://odhzkaxdmszjsidhozua.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kaHprYXhkbXN6anNpZGhvemFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMjQ2NjYsImV4cCI6MjExMDcwMDY2Nn0.KUnIbPmOxkbwriIR3VaeAjP5SUWNiTFVhaKiAMR9PTs'
+);
+
+// ===== ESTADO =====
+let S = { meta:0, n:60, maxDep:50, depositado:0, hist:[], userId:null, userMail:'' };
+const STEP = 5;
+const fmt = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+
+// ===== AUTH =====
+async function checkAuth(){
+  const { data:{ user } } = await supabase.auth.getUser();
+  if(user){
+    S.userId = user.id;
+    S.userMail = user.email;
+    await carregarCofre();
+    document.getElementById('telaLogin').style.display='none';
+    document.getElementById('telaApp').style.display='block';
+    document.getElementById('userMail').textContent = user.email;
+    document.getElementById('userMail2').textContent = user.email;
+    if(S.meta>0) mostrarCofre(); else mostrarSetup();
+  } else {
+    document.getElementById('telaLogin').style.display='block';
+    document.getElementById('telaApp').style.display='none';
+  }
+}
+
+async function login(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  if(!email||!senha){ toast('⚠️ Preencha e-mail e senha'); return; }
+  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  if(error){ toast('❌ '+error.message); return; }
+  toast('✅ Bem-vinda de volta!');
+  checkAuth();
+}
+
+async function registrar(){
+  const email = document.getElementById('regEmail').value.trim();
+  const senha = document.getElementById('regSenha').value;
+  if(!email||!senha){ toast('⚠️ Preencha tudo'); return; }
+  if(senha.length<6){ toast('⚠️ Senha mínimo 6 caracteres'); return; }
+  const { error } = await supabase.auth.signUp({ email, password: senha });
+  if(error){ toast('❌ '+error.message); return; }
+  document.getElementById('regMsg').textContent = '✅ Conta criada! Verifique seu e-mail ('+email+') e clique no link de confirmação antes de logar.';
+  toast('📧 Confira seu e-mail!');
+}
+
+async function logout(){
+  await supabase.auth.signOut();
+  S = { meta:0, n:60, maxDep:50, depositado:0, hist:[], userId:null, userMail:'' };
+  document.getElementById('telaLogin').style.display='block';
+  document.getElementById('telaApp').style.display='none';
+}
+
+// ===== PERSISTÊNCIA =====
+async function salvarCofre(){
+  if(!S.userId) return;
+  const { error } = await supabase.from('cofres').upsert({
+    user_id: S.userId,
+    meta: S.meta,
+    max_dep: S.maxDep,
+    n_cells: S.n,
+    depositado: S.depositado,
+    hist: S.hist
+  }, { onConflict: 'user_id' });
+  if(error) toast('❌ Erro ao salvar: '+error.message);
+}
+
+async function carregarCofre(){
+  const { data, error } = await supabase.from('cofres').select('*').eq('user_id', S.userId).maybeSingle();
+  if(data && !error){
+    S.meta = data.meta; S.maxDep = data.max_dep; S.n = data.n_cells;
+    S.depositado = data.depositado; S.hist = data.hist || [];
+  }
+}
+
+// ===== SETUP =====
+function ajustarSlider(){
+  const meta = parseFloat(document.getElementById('meta').value)||0;
+  const maxDep = Math.max(5, parseFloat(document.getElementById('maxDep').value)||50);
+  const sl = document.getElementById('nCells');
+  if(meta>0){
+    const nMin = Math.max(1, Math.ceil(meta/maxDep));
+    const nMax = Math.min(800, Math.max(200, nMin*4));
+    sl.min = nMin; sl.max = nMax;
+    if(+sl.value < nMin) sl.value = nMin;
+    if(+sl.value > nMax) sl.value = nMax;
+    document.getElementById('nLabel').textContent = sl.value+' células';
+    document.getElementById('nHint').textContent = 'Com teto '+fmt(maxDep)+' e meta '+fmt(meta)+', mínimo '+nMin+' células. Recomendo '+Math.min(nMax, Math.round(nMin*2))+'+ para maioria pequena.';
+  } else { sl.min=20; sl.max=200; document.getElementById('nLabel').textContent=sl.value+' células'; }
+}
+
+function criar(){
+  const m = parseFloat(document.getElementById('meta').value);
+  const mx = parseFloat(document.getElementById('maxDep').value);
+  if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
+  if(!mx||mx<5){ toast('⚠️ Teto mínimo R$ 5,00'); return; }
+  if(mx>m){ toast('⚠️ Teto não pode ser maior que a meta'); return; }
+  S.meta=m; S.maxDep=mx; S.n=parseInt(document.getElementById('nCells').value);
+  S.depositado=0; S.hist=[];
+  salvarCofre(); mostrarCofre(); toast('✅ Cofre Rai$$a criado!');
+}
+
+function mostrarSetup(){ document.getElementById('telaSetup').style.display='block'; document.getElementById('telaCofre').style.display='none'; }
+function mostrarCofre(){ document.getElementById('telaSetup').style.display='none'; document.getElementById('telaCofre').style.display='block'; render(); }
+
+// ===== ALGORITMO GRID (com teto) =====
+function gerarGrid(restante, n, maxDep){
+  if(restante<=0) return [];
+  if(restante<STEP) return [Math.round(restante*100)/100];
+  const maxU = Math.max(1, Math.floor(maxDep/STEP));
+  let baseU = Math.floor(restante/STEP);
+  let restoCents = Math.round((restante - baseU*STEP)*100);
+  let nMin = Math.ceil(baseU/maxU);
+  if(n<nMin) n=nMin;
+  if(n>baseU) n=baseU;
+  if(n<1) n=1;
+  let w=[]; for(let i=0;i<n;i++) w.push(Math.pow(Math.random(),2)+0.01);
+  let sw=w.reduce((a,b)=>a+b,0);
+  let u=w.map(x=>x/sw*baseU);
+  for(let it=0;it<60;it++){
+    let exc=0, space=[];
+    for(let i=0;i<n;i++){
+      if(u[i]>maxU){exc+=u[i]-maxU;u[i]=maxU;}
+      else if(u[i]<maxU) space.push(i);
+    }
+    if(exc<0.001||!space.length)break;
+    let totSpace=space.reduce((a,i)=>a+(maxU-u[i]),0);
+    if(totSpace<=0)break;
+    for(const i of space){u[i]+=exc*(maxU-u[i])/totSpace; if(u[i]>maxU)u[i]=maxU;}
+  }
+  let ui=u.map(x=>Math.max(1,Math.round(x)));
+  let s=ui.reduce((a,b)=>a+b,0), g=0;
+  while(s!==baseU && g<200000){
+    g++;
+    if(s>baseU){let i=ui.findIndex(v=>v>1); if(i<0)break; ui[i]--; s--;}
+    else {let i=ui.findIndex(v=>v<maxU); if(i<0)break; ui[i]++; s++;}
+  }
+  let vals=ui.map(x=>x*STEP);
+  if(restoCents>0){
+    const extra=restoCents/100;
+    let i=vals.findIndex(v=>v+extra<=maxDep+0.001);
+    if(i>=0) vals[i]=Math.round((vals[i]+extra)*100)/100;
+    else vals.push(extra);
+  }
+  for(let j=vals.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[vals[j],vals[k]]=[vals[k],vals[j]];}
+  return vals;
+}
+
+function render(){
+  const falta = Math.max(0, S.meta - S.depositado);
+  const pct = S.meta>0 ? Math.min(100, S.depositado/S.meta*100) : 0;
+  document.getElementById('dMeta').textContent = fmt(S.meta);
+  document.getElementById('dDep').textContent = fmt(S.depositado);
+  document.getElementById('dFalta').textContent = fmt(falta);
+  document.getElementById('pfill').style.width = pct+'%';
+  document.getElementById('ppct').textContent = pct.toFixed(1)+'%';
+  document.getElementById('tagMax').textContent = '⬆️ Teto: '+fmt(S.maxDep);
+  document.getElementById('tagN').textContent = '🧩 '+S.n+' células';
+  document.getElementById('gridSub').textContent = '(cada célula ≤ '+fmt(S.maxDep)+')';
+  const g = document.getElementById('grid'); g.innerHTML='';
+  if(falta<=0){
+    g.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#4CAF50;font-weight:bold;padding:20px">🏆 Cofre completo!</div>';
+  } else {
+    gerarGrid(falta, S.n, S.maxDep).forEach(v=>{
+      const d=document.createElement('div');
+      d.className='cell'+(v>=S.maxDep*0.95?' big':'');
+      d.textContent=fmt(v).replace('R$ ','');
+      d.title='Clique ao depositar '+fmt(v);
+      d.onclick=()=>registrarDeposito(v);
+      g.appendChild(d);
+    });
+  }
+  const h=document.getElementById('hist');
+  h.innerHTML = S.hist.length?'':'<div style="color:#c9a87c">Nenhum depósito ainda.</div>';
+  [...S.hist].reverse().forEach((d,idx)=>{
+    const div=document.createElement('div');
+    div.innerHTML='<span>#'+(S.hist.length-idx)+' · '+new Date(d.t).toLocaleString('pt-BR')+'</span><b>+'+fmt(d.v)+'</b>';
+    h.appendChild(div);
+  });
+  if(pct>=100){ document.getElementById('celeb').classList.add('on'); document.getElementById('celebV').textContent=fmt(S.meta); }
+  else document.getElementById('celeb').classList.remove('on');
+}
+
+function registrarDeposito(v){
+  const falta = S.meta - S.depositado;
+  const val = Math.min(v, falta);
+  if(val<=0){ toast('⚠️ Meta já atingida!'); return; }
+  S.depositado = Math.round((S.depositado+val)*100)/100;
+  S.hist.push({v:val, t:Date.now()});
+  salvarCofre(); render();
+  toast('✅ +'+fmt(val)+' · Grid reformulado!');
+}
+
+function abrirLivre(){
+  const falta = S.meta - S.depositado;
+  document.getElementById('modalInfo').textContent = 'Quanto depositou? (máximo '+fmt(S.maxDep)+' · falta '+fmt(falta)+')';
+  document.getElementById('modal').classList.add('on');
+  document.getElementById('depVal').value='';
+  document.getElementById('depVal').focus();
+}
+function fecharModal(){ document.getElementById('modal').classList.remove('on'); }
+
+function depositarLivre(){
+  const v = parseFloat(document.getElementById('depVal').value);
+  if(!v||v<=0){ toast('⚠️ Valor inválido'); return; }
+  if(v > S.maxDep+0.01){ toast('⚠️ Teto é '+fmt(S.maxDep)); return; }
+  const falta = S.meta - S.depositado;
+  if(v > falta+0.01){ toast('⚠️ Máximo agora: '+fmt(falta)); return; }
+  registrarDeposito(v); fecharModal();
+}
+
+function desfazer(){
+  if(!S.hist.length){ toast('Nada para desfazer'); return; }
+  const d = S.hist.pop();
+  S.depositado = Math.round((S.depositado-d.v)*100)/100;
+  salvarCofre(); render();
+  toast('↩️ Removido '+fmt(d.v));
+}
+
+function resetar(){
+  if(confirm('Resetar o cofre? Perderá todo o progresso.')){
+    S.meta=0; S.depositado=0; S.hist=[];
+    salvarCofre(); mostrarSetup(); toast('🔄 Resetado!');
+  }
+}
+
+// ===== BACKUP =====
+function exportarBackup(){
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cofre-raissa-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  toast('💾 Backup salvo!');
+}
+
+function importarBackup(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.meta||!data.maxDep){ toast('⚠️ Arquivo inválido'); return; }
+      S.meta=data.meta; S.maxDep=data.maxDep; S.n=data.n||60;
+      S.depositado=data.depositado||0; S.hist=data.hist||[];
+      salvarCofre(); mostrarCofre(); toast('📂 Backup restaurado!');
+    } catch(err){ toast('❌ Erro ao ler arquivo'); }
+  };
+  reader.readAsText(file);
+}
+
+// ===== TOAST =====
+function toast(m){
+  const t=document.getElementById('toast');
+  t.textContent=m; t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),3000);
+}
+
+// ===== EVENTOS =====
+document.getElementById('btnLogin').addEventListener('click', login);
+document.getElementById('btnReg').addEventListener('click', registrar);
+document.getElementById('meta').addEventListener('input', ajustarSlider);
+document.getElementById('maxDep').addEventListener('input', ajustarSlider);
+document.getElementById('nCells').addEventListener('input', e=>{ document.getElementById('nLabel').textContent=e.target.value+' células'; });
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') fecharModal(); });
+document.getElementById('depVal').addEventListener('keypress', e=>{ if(e.key==='Enter') depositarLivre(); });
+
+// ===== INICIAR =====
+checkAuth();
+</script>
+</body>
+</html>
