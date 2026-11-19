@@ -39,6 +39,7 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 .cell.big{background:linear-gradient(145deg,#ffd27a,#e8a84c)}
 .cell.done{background:linear-gradient(145deg,#4CAF50,#2d8a2d);color:#fff;border-color:#90EE90;box-shadow:inset 0 0 8px rgba(0,0,0,.3)}
 .cell.done::after{content:'✓';position:absolute;top:2px;right:5px;font-size:.7em;color:#c8f7c8}
+.cell.hidden{display:none} /* Botões excedentes somem sem mover os verdes */
 .hist{max-height:180px;overflow-y:auto;font-size:.85em}
 .hist div{padding:6px 10px;border-bottom:1px solid #5a3520;display:flex;justify-content:space-between;color:#c9a87c}
 .hist div b{color:#4CAF50}
@@ -59,7 +60,6 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 .userbar .mail{color:#c9a87c;font-size:.9em}
 .userbar .mail b{color:#FFD700}
 .footer{text-align:center;padding:14px;color:#8B6914;font-size:.82em}
-/* 🎊 papel picado */
 .confetti{position:fixed;top:-20px;width:10px;height:14px;z-index:3000;pointer-events:none;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.8}}
 @media(max-width:600px){.header h1{font-size:1.5em}.grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:4px}.cell{font-size:.72em}}
@@ -67,7 +67,6 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 </head>
 <body>
 <div class="container">
-
 <div class="header">
 <h1>🏦 Cofre <span>Rai$$a</span></h1>
 <p>"Pequenos passos hoje, grandes conquistas amanhã."</p>
@@ -96,8 +95,6 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 
 <!-- APP -->
 <div id="telaApp" style="display:none">
-
-<!-- SETUP -->
 <div class="card" id="telaSetup" style="display:none">
 <div class="userbar">
 <h2 style="margin:0">⚙️ Configurar Meta</h2>
@@ -113,7 +110,6 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <button class="btn btn-primary" onclick="criar()">🔨 Criar Cofre Rai$$a</button>
 </div>
 
-<!-- COFRE -->
 <div id="telaCofre" style="display:none">
 <div class="card">
 <div class="userbar">
@@ -149,7 +145,6 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <div class="hist" id="hist"></div>
 </div>
 </div>
-
 </div>
 
 <div class="footer">🏆 Comece agora o seu Desafio de Economia com o Cofre Rai$$a!</div>
@@ -265,45 +260,92 @@ function criar(){
   if(!mx||mx<5){ toast('⚠️ Teto mínimo R$ 5,00'); return; }
   if(mx>m){ toast('⚠️ Teto não pode ser maior que a meta'); return; }
   S.meta=m; S.maxDep=mx; S.n=parseInt(document.getElementById('nCells').value);
-  S.cells=gerarCartela(m,S.n,mx); S.hist=[];
+  S.cells=gerarValoresCartela(m,S.n,mx).map(v=>({v, done:false}));
+  S.hist=[];
   salvarCofre(); mostrarCofre(); toast('✅ Cartela criada! Comece a preencher. 🎊');
 }
 
 function mostrarSetup(){ document.getElementById('telaSetup').style.display='block'; document.getElementById('telaCofre').style.display='none'; }
 function mostrarCofre(){ document.getElementById('telaSetup').style.display='none'; document.getElementById('telaCofre').style.display='block'; render(); }
 
-// ===== GERAR CARTELA FIXA =====
-function gerarCartela(restante,n,maxDep){
+// ===== 🧠 LÓGICA DE RECOMPOSIÇÃO INTELIGENTE =====
+function recomporCartela(){
+  const locked = S.cells.filter(c => c.done);
+  const lockedSum = locked.reduce((acc, c) => acc + c.v, 0);
+  let remaining = Math.max(0, Math.round((S.meta - lockedSum) * 100) / 100);
+
+  if (remaining <= 0.01) {
+    S.cells = S.cells.map(c => c.done ? c : { v: 0, done: true });
+    return;
+  }
+
+  const ungreenIndices = S.cells.map((c, i) => c.done ? -1 : i).filter(i => i !== -1);
+  let numUngreen = ungreenIndices.length;
+  const minVal = 5;
+  
+  if (remaining < numUngreen * minVal) {
+    numUngreen = Math.max(1, Math.floor(remaining / minVal));
+  }
+
+  let newValues = gerarValoresCartela(remaining, numUngreen, S.maxDep);
+  let valIdx = 0;
+
+  for (let i = 0; i < S.cells.length; i++) {
+    if (!S.cells[i].done) {
+      if (valIdx < newValues.length) {
+        S.cells[i].v = newValues[valIdx];
+        S.cells[i].done = false;
+        valIdx++;
+      } else {
+        S.cells[i].v = 0;
+        S.cells[i].done = true; // Vira "hidden" no render
+      }
+    }
+  }
+}
+
+function gerarValoresCartela(restante, n, maxDep){
   if(restante<=0) return [];
-  if(restante<STEP) return [{v:Math.round(restante*100)/100,done:false}];
-  const maxU=Math.max(1,Math.floor(maxDep/STEP));
-  let baseU=Math.floor(restante/STEP);
-  let restoCents=Math.round((restante-baseU*STEP)*100);
-  let nMin=Math.ceil(baseU/maxU);
-  if(n<nMin)n=nMin; if(n>baseU)n=baseU; if(n<1)n=1;
+  if(restante<STEP) return [Math.round(restante*100)/100];
+  const maxU = Math.max(1, Math.floor(maxDep/STEP));
+  let baseU = Math.floor(restante/STEP);
+  let restoCents = Math.round((restante - baseU*STEP)*100);
+  let nMin = Math.ceil(baseU/maxU);
+  if(n<nMin) n=nMin; if(n>baseU) n=baseU; if(n<1) n=1;
+  
   let w=[]; for(let i=0;i<n;i++) w.push(Math.pow(Math.random(),2)+0.01);
   let sw=w.reduce((a,b)=>a+b,0);
   let u=w.map(x=>x/sw*baseU);
+  
   for(let it=0;it<60;it++){
-    let exc=0,space=[];
-    for(let i=0;i<n;i++){ if(u[i]>maxU){exc+=u[i]-maxU;u[i]=maxU;} else if(u[i]<maxU)space.push(i); }
+    let exc=0, space=[];
+    for(let i=0;i<n;i++){
+      if(u[i]>maxU){exc+=u[i]-maxU;u[i]=maxU;}
+      else if(u[i]<maxU) space.push(i);
+    }
     if(exc<0.001||!space.length)break;
-    let totSpace=space.reduce((a,i)=>a+(maxU-u[i]),0); if(totSpace<=0)break;
+    let totSpace=space.reduce((a,i)=>a+(maxU-u[i]),0);
+    if(totSpace<=0)break;
     for(const i of space){u[i]+=exc*(maxU-u[i])/totSpace; if(u[i]>maxU)u[i]=maxU;}
   }
+  
   let ui=u.map(x=>Math.max(1,Math.round(x)));
-  let s=ui.reduce((a,b)=>a+b,0),g=0;
-  while(s!==baseU&&g<200000){ g++;
+  let s=ui.reduce((a,b)=>a+b,0), g=0;
+  while(s!==baseU && g<200000){
+    g++;
     if(s>baseU){let i=ui.findIndex(v=>v>1); if(i<0)break; ui[i]--; s--;}
     else {let i=ui.findIndex(v=>v<maxU); if(i<0)break; ui[i]++; s++;}
   }
+  
   let vals=ui.map(x=>x*STEP);
-  if(restoCents>0){ const extra=restoCents/100;
+  if(restoCents>0){
+    const extra=restoCents/100;
     let i=vals.findIndex(v=>v+extra<=maxDep+0.001);
-    if(i>=0)vals[i]=Math.round((vals[i]+extra)*100)/100; else vals.push(extra);
+    if(i>=0) vals[i]=Math.round((vals[i]+extra)*100)/100;
+    else vals.push(extra);
   }
   for(let j=vals.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[vals[j],vals[k]]=[vals[k],vals[j]];}
-  return vals.map(v=>({v,done:false}));
+  return vals;
 }
 
 // ===== RENDER =====
@@ -316,10 +358,12 @@ function render(){
   document.getElementById('pfill').style.width=pct+'%';
   document.getElementById('ppct').textContent=pct.toFixed(1)+'%';
   document.getElementById('tagMax').textContent='⬆️ Teto: '+fmt(S.maxDep);
-  document.getElementById('tagN').textContent='🧩 '+S.cells.length+' células';
-  document.getElementById('gridSub').textContent='(cada célula ≤ '+fmt(S.maxDep)+')';
+  document.getElementById('tagN').textContent='🧩 '+S.cells.filter(c=>c.v>0).length+' células';
+  document.getElementById('gridSub').textContent='(Verdes travados · Não verdes se recompoem)';
+  
   const g=document.getElementById('grid'); g.innerHTML='';
   S.cells.forEach((c,i)=>{
+    if(c.v===0 && c.done) return; // Esconde células excedentes sem mover o layout
     const d=document.createElement('div');
     d.className='cell'+(c.done?' done':'')+(c.v>=S.maxDep*0.95&&!c.done?' big':'');
     d.textContent=fmt(c.v).replace('R$ ','');
@@ -327,6 +371,7 @@ function render(){
     d.onclick=()=>toggleCell(i);
     g.appendChild(d);
   });
+  
   const h=document.getElementById('hist');
   h.innerHTML=S.hist.length?'':'<div style="color:#c9a87c">Nenhum depósito ainda.</div>';
   [...S.hist].reverse().forEach((d,idx)=>{
@@ -334,19 +379,24 @@ function render(){
     div.innerHTML='<span>#'+(S.hist.length-idx)+' · '+new Date(d.t).toLocaleString('pt-BR')+'</span><b>+'+fmt(d.v)+'</b>';
     h.appendChild(div);
   });
+  
   if(pct>=100){ document.getElementById('celeb').classList.add('on'); document.getElementById('celebV').textContent=fmt(S.meta); }
   else document.getElementById('celeb').classList.remove('on');
 }
 
-// ===== MARCAR CÉLULA (cartela) =====
+// ===== AÇÕES =====
 function toggleCell(i){
-  S.cells[i].done=!S.cells[i].done;
-  if(S.cells[i].done){ S.hist.push({v:S.cells[i].v,t:Date.now(),idx:i}); celebrar(); }
-  else { const pos=S.hist.map(h=>h.idx).lastIndexOf(i); if(pos>=0)S.hist.splice(pos,1); }
-  salvarCofre(); render();
+  S.cells[i].done = !S.cells[i].done;
+  if(S.cells[i].done){ 
+    S.hist.push({v:S.cells[i].v, t:Date.now(), idx:i}); 
+  } else { 
+    const pos=S.hist.map(h=>h.idx).lastIndexOf(i); 
+    if(pos>=0) S.hist.splice(pos,1); 
+  }
+  recomporCartela(); // 🧠 RECOMPOE OS NÃO VERDES
+  salvarCofre(); render(); celebrar();
 }
 
-// ===== DEPÓSITO LIVRE (preenche cartela) =====
 function abrirLivre(){
   const falta=S.meta-depositado();
   document.getElementById('modalInfo').textContent='Quanto depositou? (máximo '+fmt(S.maxDep)+' · falta '+fmt(falta)+')';
@@ -361,32 +411,43 @@ function depositarLivre(){
   if(x>S.maxDep+0.01){ toast('⚠️ Teto é '+fmt(S.maxDep)); return; }
   const falta=S.meta-depositado();
   if(x>falta+0.01){ toast('⚠️ Máximo agora: '+fmt(falta)); return; }
-  // guloso: preenche células não-feitas que somem x
-  const livres=S.cells.map((c,i)=>({...c,i})).filter(c=>!c.done).sort((a,b)=>b.v-a.v);
-  let rest=x, marcados=[];
-  for(const c of livres){ if(c.v<=rest+0.001){ rest-=c.v; marcados.push(c.i); if(rest<=0.001)break; } }
-  if(rest>0.001){ // fecha com a menor célula disponível
-    const menor=livres.find(c=>!marcados.includes(c.i));
-    if(menor){ marcados.push(menor.i); }
+
+  const livres = S.cells.map((c, i) => ({ ...c, i })).filter(c => !c.done).sort((a, b) => b.v - a.v);
+  let rest = x, marcados = [];
+  for (const c of livres) {
+    if (c.v <= rest + 0.001) { rest -= c.v; marcados.push(c.i); if (rest <= 0.001) break; }
   }
-  marcados.forEach(i=>{ S.cells[i].done=true; S.hist.push({v:S.cells[i].v,t:Date.now(),idx:i}); });
+  if (rest > 0.001) {
+    const menor = livres.find(c => !marcados.includes(c.i));
+    if (menor) marcados.push(menor.i);
+  }
+
+  marcados.forEach(i => {
+    S.cells[i].done = true;
+    S.hist.push({ v: S.cells[i].v, t: Date.now(), idx: i });
+  });
+
+  recomporCartela(); // 🧠 RECOMPOE OS NÃO VERDES
   salvarCofre(); render(); fecharModal(); celebrar();
 }
 
 function desfazer(){
   if(!S.hist.length){ toast('Nada para desfazer'); return; }
-  const d=S.hist.pop(); S.cells[d.idx].done=false;
+  const d=S.hist.pop(); 
+  S.cells[d.idx].done=false;
+  recomporCartela(); // 🧠 RECOMPOE OS NÃO VERDES PARA PREENCHER O BURACO
   salvarCofre(); render(); toast('↩️ Desmarcado '+fmt(S.cells[d.idx].v));
 }
 
 function resetar(){
   if(confirm('Resetar a cartela? Perderá o progresso.')){
-    S.cells=gerarCartela(S.meta,S.n,S.maxDep); S.hist=[];
+    S.cells=gerarValoresCartela(S.meta,S.n,S.maxDep).map(v=>({v, done:false})); 
+    S.hist=[];
     salvarCofre(); render(); toast('🔄 Cartela zerada!');
   }
 }
 
-// ===== 🎊 CHUVA DE PAPEL PICADO + MENSAGEM =====
+// ===== 🎊 CHUVA DE PAPEL PICADO =====
 function celebrar(){
   const falta=S.meta-depositado();
   confetti();
@@ -428,10 +489,8 @@ function importarBackup(ev){
   reader.readAsText(file);
 }
 
-// ===== TOAST =====
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),3500); }
 
-// ===== EVENTOS =====
 document.getElementById('btnLogin').addEventListener('click',login);
 document.getElementById('btnReg').addEventListener('click',registrar);
 document.getElementById('meta').addEventListener('input',ajustarSlider);
