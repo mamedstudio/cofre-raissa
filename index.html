@@ -34,9 +34,11 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 .info .v{color:#FFD700;font-weight:bold;font-size:1.15em}
 .info .l{color:#c9a87c;font-size:.85em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:6px;padding:14px;background:#2a1508;border-radius:12px;border:1px solid #5a3520;max-height:500px;overflow-y:auto}
-.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#f5deb3,#deb887);border:2px solid #8B6914;border-radius:8px;font-weight:bold;color:#3d2215;font-size:.82em;cursor:pointer;transition:all .15s;user-select:none}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#f5deb3,#deb887);border:2px solid #8B6914;border-radius:8px;font-weight:bold;color:#3d2215;font-size:.82em;cursor:pointer;transition:all .2s;user-select:none;position:relative}
 .cell:hover{transform:scale(1.12);box-shadow:0 0 12px rgba(255,215,0,.5);border-color:#FFD700}
 .cell.big{background:linear-gradient(145deg,#ffd27a,#e8a84c)}
+.cell.done{background:linear-gradient(145deg,#4CAF50,#2d8a2d);color:#fff;border-color:#90EE90;box-shadow:inset 0 0 8px rgba(0,0,0,.3)}
+.cell.done::after{content:'✓';position:absolute;top:2px;right:5px;font-size:.7em;color:#c8f7c8}
 .hist{max-height:180px;overflow-y:auto;font-size:.85em}
 .hist div{padding:6px 10px;border-bottom:1px solid #5a3520;display:flex;justify-content:space-between;color:#c9a87c}
 .hist div b{color:#4CAF50}
@@ -49,7 +51,7 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 .celeb.on{display:block}
 .celeb h2{color:#FFD700;font-size:1.8em;margin-bottom:8px}
 @keyframes pulse{0%,100%{box-shadow:0 0 20px rgba(76,175,80,.3)}50%{box-shadow:0 0 40px rgba(76,175,80,.6)}}
-.toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,150%);background:linear-gradient(145deg,#4CAF50,#2d8a2d);color:#fff;padding:12px 22px;border-radius:10px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,.4);transition:transform .4s;z-index:2000;white-space:nowrap}
+.toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,150%);background:linear-gradient(145deg,#4CAF50,#2d8a2d);color:#fff;padding:12px 22px;border-radius:10px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,.4);transition:transform .4s;z-index:2000;max-width:90%;text-align:center}
 .toast.on{transform:translate(-50%,0)}
 .hint{color:#c9a87c;font-size:.8em;margin:6px 0 14px}
 .tag{display:inline-block;background:#1a0a00;border:1px solid #8B6914;border-radius:6px;padding:4px 10px;color:#FFD700;font-size:.85em;margin:2px}
@@ -57,6 +59,9 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 .userbar .mail{color:#c9a87c;font-size:.9em}
 .userbar .mail b{color:#FFD700}
 .footer{text-align:center;padding:14px;color:#8B6914;font-size:.82em}
+/* 🎊 papel picado */
+.confetti{position:fixed;top:-20px;width:10px;height:14px;z-index:3000;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.8}}
 @media(max-width:600px){.header h1{font-size:1.5em}.grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:4px}.cell{font-size:.72em}}
 </style>
 </head>
@@ -77,23 +82,13 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <div id="telaLogin" class="card">
 <h2>🔐 Entrar ou Criar Conta</h2>
 <div style="display:grid;gap:12px;max-width:420px">
-<div>
-<label>E-mail</label>
-<input type="email" id="loginEmail" placeholder="seu@email.com">
-</div>
-<div>
-<label>Senha</label>
-<input type="password" id="loginSenha" placeholder="••••••••">
-</div>
+<div><label>E-mail</label><input type="email" id="loginEmail" placeholder="seu@email.com"></div>
+<div><label>Senha</label><input type="password" id="loginSenha" placeholder="••••••••"></div>
 <button class="btn btn-primary" id="btnLogin">🔑 Entrar</button>
 <hr style="border-color:#5a3520;margin:10px 0">
 <p style="color:#c9a87c;font-size:.9em">Novo por aqui?</p>
-<div>
-<input type="email" id="regEmail" placeholder="seu@email.com">
-</div>
-<div>
-<input type="password" id="regSenha" placeholder="Mínimo 6 caracteres">
-</div>
+<div><input type="email" id="regEmail" placeholder="seu@email.com"></div>
+<div><input type="password" id="regSenha" placeholder="Mínimo 6 caracteres"></div>
 <button class="btn btn-green" id="btnReg">📝 Criar conta</button>
 <p id="regMsg" style="color:#FFD700;font-size:.85em"></p>
 </div>
@@ -109,14 +104,8 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <div><span class="mail">👤 <b id="userMail"></b></span> <button class="btn btn-red" onclick="logout()">🚪 Sair</button></div>
 </div>
 <div class="row">
-<div class="grow">
-<label>Valor da meta (R$)</label>
-<input type="number" id="meta" placeholder="Ex: 10000" min="10" step="0.01">
-</div>
-<div class="grow">
-<label>⭐ Valor MÁXIMO por depósito (R$)</label>
-<input type="number" id="maxDep" placeholder="Ex: 50" min="5" step="1" value="50">
-</div>
+<div class="grow"><label>Valor da meta (R$)</label><input type="number" id="meta" placeholder="Ex: 10000" min="10" step="0.01"></div>
+<div class="grow"><label>⭐ Valor MÁXIMO por depósito (R$)</label><input type="number" id="maxDep" placeholder="Ex: 50" min="5" step="1" value="50"></div>
 </div>
 <label style="margin-top:14px">Quantidade de depósitos: <b id="nLabel" style="color:#FFD700">—</b></label>
 <input type="range" id="nCells" min="20" max="200" value="60">
@@ -137,10 +126,7 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <div><span class="l">Falta</span><br><span class="v" id="dFalta"></span></div>
 </div>
 <div class="pbar"><div class="pfill" id="pfill" style="width:0%"><span id="ppct">0%</span></div></div>
-<div style="margin:8px 0">
-<span class="tag" id="tagMax"></span>
-<span class="tag" id="tagN"></span>
-</div>
+<div style="margin:8px 0"><span class="tag" id="tagMax"></span><span class="tag" id="tagN"></span></div>
 <div class="row">
 <button class="btn btn-green grow" onclick="abrirLivre()">💰 Depósito Livre</button>
 <button class="btn btn-gray" onclick="desfazer()">↩️ Desfazer</button>
@@ -154,7 +140,7 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 </div>
 
 <div class="card">
-<h2>📋 Como dividir o que falta <span style="font-size:.7em;color:#c9a87c;font-weight:normal" id="gridSub"></span></h2>
+<h2>📋 Sua cartela <span style="font-size:.7em;color:#c9a87c;font-weight:normal" id="gridSub"></span></h2>
 <div class="grid" id="grid"></div>
 </div>
 
@@ -185,29 +171,29 @@ input[type=range]{width:100%;accent-color:#FFD700;margin:8px 0}
 <div class="toast" id="toast"></div>
 
 <script>
-// ===== SUPABASE (NOVAS CHAVES) =====
+// ===== SUPABASE =====
 const sb = window.supabase.createClient(
   'https://tscpegufitpryieewiqo.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzY3BlZ3VmaXRwcnlpZWV3aXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMjM0NTYsImV4cCI6MjExMDY5OTQ1Nn0.UPePycoAoyyCL0wP-UVkfF4MRmEJdXOSl-PqIAvaguE'
 );
 
 // ===== ESTADO =====
-let S = { meta:0, n:60, maxDep:50, depositado:0, hist:[], userId:null, userMail:'' };
+let S = { meta:0, n:60, maxDep:50, cells:[], hist:[], userId:null, userMail:'' };
 const STEP = 5;
 const fmt = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+const depositado = () => Math.round(S.cells.filter(c=>c.done).reduce((a,c)=>a+c.v,0)*100)/100;
 
 // ===== AUTH =====
 async function checkAuth(){
   const { data:{ user } } = await sb.auth.getUser();
   if(user){
-    S.userId = user.id;
-    S.userMail = user.email;
+    S.userId = user.id; S.userMail = user.email;
     await carregarCofre();
     document.getElementById('telaLogin').style.display='none';
     document.getElementById('telaApp').style.display='block';
     document.getElementById('userMail').textContent = user.email;
     document.getElementById('userMail2').textContent = user.email;
-    if(S.meta>0) mostrarCofre(); else mostrarSetup();
+    if(S.meta>0 && S.cells.length) mostrarCofre(); else mostrarSetup();
   } else {
     document.getElementById('telaLogin').style.display='block';
     document.getElementById('telaApp').style.display='none';
@@ -215,29 +201,26 @@ async function checkAuth(){
 }
 
 async function login(){
-  const email = document.getElementById('loginEmail').value.trim();
-  const senha = document.getElementById('loginSenha').value;
+  const email=document.getElementById('loginEmail').value.trim(), senha=document.getElementById('loginSenha').value;
   if(!email||!senha){ toast('⚠️ Preencha e-mail e senha'); return; }
-  const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+  const { error } = await sb.auth.signInWithPassword({email,password:senha});
   if(error){ toast('❌ '+error.message); return; }
-  toast('✅ Bem-vinda de volta!');
-  checkAuth();
+  toast('✅ Bem-vinda de volta!'); checkAuth();
 }
 
 async function registrar(){
-  const email = document.getElementById('regEmail').value.trim();
-  const senha = document.getElementById('regSenha').value;
+  const email=document.getElementById('regEmail').value.trim(), senha=document.getElementById('regSenha').value;
   if(!email||!senha){ toast('⚠️ Preencha tudo'); return; }
-  if(senha.length<6){ toast('⚠️ Senha mínimo 6 caracteres'); return; }
-  const { error } = await sb.auth.signUp({ email, password: senha });
+  if(senha.length<6){ toast('⚠️ Senha mínimo 6'); return; }
+  const { error } = await sb.auth.signUp({email,password:senha});
   if(error){ toast('❌ '+error.message); return; }
-  document.getElementById('regMsg').textContent = '✅ Conta criada! Pode entrar agora.';
-  toast('🎉 Conta criada com sucesso!');
+  document.getElementById('regMsg').textContent='✅ Conta criada! Pode entrar agora.';
+  toast('🎉 Conta criada!');
 }
 
 async function logout(){
   await sb.auth.signOut();
-  S = { meta:0, n:60, maxDep:50, depositado:0, hist:[], userId:null, userMail:'' };
+  S={meta:0,n:60,maxDep:50,cells:[],hist:[],userId:null,userMail:''};
   document.getElementById('telaLogin').style.display='block';
   document.getElementById('telaApp').style.display='none';
 }
@@ -246,123 +229,106 @@ async function logout(){
 async function salvarCofre(){
   if(!S.userId) return;
   const { error } = await sb.from('cofres').upsert({
-    user_id: S.userId,
-    meta: S.meta,
-    max_dep: S.maxDep,
-    n_cells: S.n,
-    depositado: S.depositado,
-    hist: S.hist
-  }, { onConflict: 'user_id' });
+    user_id:S.userId, meta:S.meta, max_dep:S.maxDep, n_cells:S.n,
+    depositado:depositado(), cells:S.cells, hist:S.hist
+  },{onConflict:'user_id'});
   if(error) toast('❌ Erro ao salvar: '+error.message);
 }
 
 async function carregarCofre(){
-  const { data, error } = await sb.from('cofres').select('*').eq('user_id', S.userId).maybeSingle();
+  const { data, error } = await sb.from('cofres').select('*').eq('user_id',S.userId).maybeSingle();
   if(data && !error){
-    S.meta = data.meta; S.maxDep = data.max_dep; S.n = data.n_cells;
-    S.depositado = data.depositado; S.hist = data.hist || [];
+    S.meta=+data.meta; S.maxDep=+data.max_dep; S.n=data.n_cells;
+    S.cells=data.cells||[]; S.hist=data.hist||[];
   }
 }
 
 // ===== SETUP =====
 function ajustarSlider(){
-  const meta = parseFloat(document.getElementById('meta').value)||0;
-  const maxDep = Math.max(5, parseFloat(document.getElementById('maxDep').value)||50);
-  const sl = document.getElementById('nCells');
+  const meta=parseFloat(document.getElementById('meta').value)||0;
+  const maxDep=Math.max(5,parseFloat(document.getElementById('maxDep').value)||50);
+  const sl=document.getElementById('nCells');
   if(meta>0){
-    const nMin = Math.max(1, Math.ceil(meta/maxDep));
-    const nMax = Math.min(800, Math.max(200, nMin*4));
-    sl.min = nMin; sl.max = nMax;
-    if(+sl.value < nMin) sl.value = nMin;
-    if(+sl.value > nMax) sl.value = nMax;
-    document.getElementById('nLabel').textContent = sl.value+' células';
-    document.getElementById('nHint').textContent = 'Com teto '+fmt(maxDep)+' e meta '+fmt(meta)+', mínimo '+nMin+' células. Recomendo '+Math.min(nMax, Math.round(nMin*2))+'+ para maioria pequena.';
+    const nMin=Math.max(1,Math.ceil(meta/maxDep));
+    const nMax=Math.min(800,Math.max(200,nMin*4));
+    sl.min=nMin; sl.max=nMax;
+    if(+sl.value<nMin)sl.value=nMin; if(+sl.value>nMax)sl.value=nMax;
+    document.getElementById('nLabel').textContent=sl.value+' células';
+    document.getElementById('nHint').textContent='Com teto '+fmt(maxDep)+' e meta '+fmt(meta)+', mínimo '+nMin+' células. Recomendo '+Math.min(nMax,Math.round(nMin*2))+'+ para maioria pequena.';
   } else { sl.min=20; sl.max=200; document.getElementById('nLabel').textContent=sl.value+' células'; }
 }
 
 function criar(){
-  const m = parseFloat(document.getElementById('meta').value);
-  const mx = parseFloat(document.getElementById('maxDep').value);
+  const m=parseFloat(document.getElementById('meta').value);
+  const mx=parseFloat(document.getElementById('maxDep').value);
   if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
   if(!mx||mx<5){ toast('⚠️ Teto mínimo R$ 5,00'); return; }
   if(mx>m){ toast('⚠️ Teto não pode ser maior que a meta'); return; }
   S.meta=m; S.maxDep=mx; S.n=parseInt(document.getElementById('nCells').value);
-  S.depositado=0; S.hist=[];
-  salvarCofre(); mostrarCofre(); toast('✅ Cofre Rai$$a criado!');
+  S.cells=gerarCartela(m,S.n,mx); S.hist=[];
+  salvarCofre(); mostrarCofre(); toast('✅ Cartela criada! Comece a preencher. 🎊');
 }
 
 function mostrarSetup(){ document.getElementById('telaSetup').style.display='block'; document.getElementById('telaCofre').style.display='none'; }
 function mostrarCofre(){ document.getElementById('telaSetup').style.display='none'; document.getElementById('telaCofre').style.display='block'; render(); }
 
-// ===== ALGORITMO GRID =====
-function gerarGrid(restante, n, maxDep){
+// ===== GERAR CARTELA FIXA =====
+function gerarCartela(restante,n,maxDep){
   if(restante<=0) return [];
-  if(restante<STEP) return [Math.round(restante*100)/100];
-  const maxU = Math.max(1, Math.floor(maxDep/STEP));
-  let baseU = Math.floor(restante/STEP);
-  let restoCents = Math.round((restante - baseU*STEP)*100);
-  let nMin = Math.ceil(baseU/maxU);
-  if(n<nMin) n=nMin;
-  if(n>baseU) n=baseU;
-  if(n<1) n=1;
+  if(restante<STEP) return [{v:Math.round(restante*100)/100,done:false}];
+  const maxU=Math.max(1,Math.floor(maxDep/STEP));
+  let baseU=Math.floor(restante/STEP);
+  let restoCents=Math.round((restante-baseU*STEP)*100);
+  let nMin=Math.ceil(baseU/maxU);
+  if(n<nMin)n=nMin; if(n>baseU)n=baseU; if(n<1)n=1;
   let w=[]; for(let i=0;i<n;i++) w.push(Math.pow(Math.random(),2)+0.01);
   let sw=w.reduce((a,b)=>a+b,0);
   let u=w.map(x=>x/sw*baseU);
   for(let it=0;it<60;it++){
-    let exc=0, space=[];
-    for(let i=0;i<n;i++){
-      if(u[i]>maxU){exc+=u[i]-maxU;u[i]=maxU;}
-      else if(u[i]<maxU) space.push(i);
-    }
+    let exc=0,space=[];
+    for(let i=0;i<n;i++){ if(u[i]>maxU){exc+=u[i]-maxU;u[i]=maxU;} else if(u[i]<maxU)space.push(i); }
     if(exc<0.001||!space.length)break;
-    let totSpace=space.reduce((a,i)=>a+(maxU-u[i]),0);
-    if(totSpace<=0)break;
+    let totSpace=space.reduce((a,i)=>a+(maxU-u[i]),0); if(totSpace<=0)break;
     for(const i of space){u[i]+=exc*(maxU-u[i])/totSpace; if(u[i]>maxU)u[i]=maxU;}
   }
   let ui=u.map(x=>Math.max(1,Math.round(x)));
-  let s=ui.reduce((a,b)=>a+b,0), g=0;
-  while(s!==baseU && g<200000){
-    g++;
+  let s=ui.reduce((a,b)=>a+b,0),g=0;
+  while(s!==baseU&&g<200000){ g++;
     if(s>baseU){let i=ui.findIndex(v=>v>1); if(i<0)break; ui[i]--; s--;}
     else {let i=ui.findIndex(v=>v<maxU); if(i<0)break; ui[i]++; s++;}
   }
   let vals=ui.map(x=>x*STEP);
-  if(restoCents>0){
-    const extra=restoCents/100;
+  if(restoCents>0){ const extra=restoCents/100;
     let i=vals.findIndex(v=>v+extra<=maxDep+0.001);
-    if(i>=0) vals[i]=Math.round((vals[i]+extra)*100)/100;
-    else vals.push(extra);
+    if(i>=0)vals[i]=Math.round((vals[i]+extra)*100)/100; else vals.push(extra);
   }
   for(let j=vals.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[vals[j],vals[k]]=[vals[k],vals[j]];}
-  return vals;
+  return vals.map(v=>({v,done:false}));
 }
 
+// ===== RENDER =====
 function render(){
-  const falta = Math.max(0, S.meta - S.depositado);
-  const pct = S.meta>0 ? Math.min(100, S.depositado/S.meta*100) : 0;
-  document.getElementById('dMeta').textContent = fmt(S.meta);
-  document.getElementById('dDep').textContent = fmt(S.depositado);
-  document.getElementById('dFalta').textContent = fmt(falta);
-  document.getElementById('pfill').style.width = pct+'%';
-  document.getElementById('ppct').textContent = pct.toFixed(1)+'%';
-  document.getElementById('tagMax').textContent = '⬆️ Teto: '+fmt(S.maxDep);
-  document.getElementById('tagN').textContent = '🧩 '+S.n+' células';
-  document.getElementById('gridSub').textContent = '(cada célula ≤ '+fmt(S.maxDep)+')';
-  const g = document.getElementById('grid'); g.innerHTML='';
-  if(falta<=0){
-    g.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#4CAF50;font-weight:bold;padding:20px">🏆 Cofre completo!</div>';
-  } else {
-    gerarGrid(falta, S.n, S.maxDep).forEach(v=>{
-      const d=document.createElement('div');
-      d.className='cell'+(v>=S.maxDep*0.95?' big':'');
-      d.textContent=fmt(v).replace('R$ ','');
-      d.title='Clique ao depositar '+fmt(v);
-      d.onclick=()=>registrarDeposito(v);
-      g.appendChild(d);
-    });
-  }
+  const dep=depositado(), falta=Math.max(0,S.meta-dep);
+  const pct=S.meta>0?Math.min(100,dep/S.meta*100):0;
+  document.getElementById('dMeta').textContent=fmt(S.meta);
+  document.getElementById('dDep').textContent=fmt(dep);
+  document.getElementById('dFalta').textContent=fmt(falta);
+  document.getElementById('pfill').style.width=pct+'%';
+  document.getElementById('ppct').textContent=pct.toFixed(1)+'%';
+  document.getElementById('tagMax').textContent='⬆️ Teto: '+fmt(S.maxDep);
+  document.getElementById('tagN').textContent='🧩 '+S.cells.length+' células';
+  document.getElementById('gridSub').textContent='(cada célula ≤ '+fmt(S.maxDep)+')';
+  const g=document.getElementById('grid'); g.innerHTML='';
+  S.cells.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='cell'+(c.done?' done':'')+(c.v>=S.maxDep*0.95&&!c.done?' big':'');
+    d.textContent=fmt(c.v).replace('R$ ','');
+    d.title=c.done?'Clique para desmarcar':'Clique ao depositar '+fmt(c.v);
+    d.onclick=()=>toggleCell(i);
+    g.appendChild(d);
+  });
   const h=document.getElementById('hist');
-  h.innerHTML = S.hist.length?'':'<div style="color:#c9a87c">Nenhum depósito ainda.</div>';
+  h.innerHTML=S.hist.length?'':'<div style="color:#c9a87c">Nenhum depósito ainda.</div>';
   [...S.hist].reverse().forEach((d,idx)=>{
     const div=document.createElement('div');
     div.innerHTML='<span>#'+(S.hist.length-idx)+' · '+new Date(d.t).toLocaleString('pt-BR')+'</span><b>+'+fmt(d.v)+'</b>';
@@ -372,91 +338,108 @@ function render(){
   else document.getElementById('celeb').classList.remove('on');
 }
 
-function registrarDeposito(v){
-  const falta = S.meta - S.depositado;
-  const val = Math.min(v, falta);
-  if(val<=0){ toast('⚠️ Meta já atingida!'); return; }
-  S.depositado = Math.round((S.depositado+val)*100)/100;
-  S.hist.push({v:val, t:Date.now()});
+// ===== MARCAR CÉLULA (cartela) =====
+function toggleCell(i){
+  S.cells[i].done=!S.cells[i].done;
+  if(S.cells[i].done){ S.hist.push({v:S.cells[i].v,t:Date.now(),idx:i}); celebrar(); }
+  else { const pos=S.hist.map(h=>h.idx).lastIndexOf(i); if(pos>=0)S.hist.splice(pos,1); }
   salvarCofre(); render();
-  toast('✅ +'+fmt(val)+' · Grid reformulado!');
 }
 
+// ===== DEPÓSITO LIVRE (preenche cartela) =====
 function abrirLivre(){
-  const falta = S.meta - S.depositado;
-  document.getElementById('modalInfo').textContent = 'Quanto depositou? (máximo '+fmt(S.maxDep)+' · falta '+fmt(falta)+')';
+  const falta=S.meta-depositado();
+  document.getElementById('modalInfo').textContent='Quanto depositou? (máximo '+fmt(S.maxDep)+' · falta '+fmt(falta)+')';
   document.getElementById('modal').classList.add('on');
-  document.getElementById('depVal').value='';
-  document.getElementById('depVal').focus();
+  document.getElementById('depVal').value=''; document.getElementById('depVal').focus();
 }
 function fecharModal(){ document.getElementById('modal').classList.remove('on'); }
 
 function depositarLivre(){
-  const v = parseFloat(document.getElementById('depVal').value);
-  if(!v||v<=0){ toast('⚠️ Valor inválido'); return; }
-  if(v > S.maxDep+0.01){ toast('⚠️ Teto é '+fmt(S.maxDep)); return; }
-  const falta = S.meta - S.depositado;
-  if(v > falta+0.01){ toast('⚠️ Máximo agora: '+fmt(falta)); return; }
-  registrarDeposito(v); fecharModal();
+  const x=parseFloat(document.getElementById('depVal').value);
+  if(!x||x<=0){ toast('⚠️ Valor inválido'); return; }
+  if(x>S.maxDep+0.01){ toast('⚠️ Teto é '+fmt(S.maxDep)); return; }
+  const falta=S.meta-depositado();
+  if(x>falta+0.01){ toast('⚠️ Máximo agora: '+fmt(falta)); return; }
+  // guloso: preenche células não-feitas que somem x
+  const livres=S.cells.map((c,i)=>({...c,i})).filter(c=>!c.done).sort((a,b)=>b.v-a.v);
+  let rest=x, marcados=[];
+  for(const c of livres){ if(c.v<=rest+0.001){ rest-=c.v; marcados.push(c.i); if(rest<=0.001)break; } }
+  if(rest>0.001){ // fecha com a menor célula disponível
+    const menor=livres.find(c=>!marcados.includes(c.i));
+    if(menor){ marcados.push(menor.i); }
+  }
+  marcados.forEach(i=>{ S.cells[i].done=true; S.hist.push({v:S.cells[i].v,t:Date.now(),idx:i}); });
+  salvarCofre(); render(); fecharModal(); celebrar();
 }
 
 function desfazer(){
   if(!S.hist.length){ toast('Nada para desfazer'); return; }
-  const d = S.hist.pop();
-  S.depositado = Math.round((S.depositado-d.v)*100)/100;
-  salvarCofre(); render();
-  toast('↩️ Removido '+fmt(d.v));
+  const d=S.hist.pop(); S.cells[d.idx].done=false;
+  salvarCofre(); render(); toast('↩️ Desmarcado '+fmt(S.cells[d.idx].v));
 }
 
 function resetar(){
-  if(confirm('Resetar o cofre? Perderá todo o progresso.')){
-    S.meta=0; S.depositado=0; S.hist=[];
-    salvarCofre(); mostrarSetup(); toast('🔄 Resetado!');
+  if(confirm('Resetar a cartela? Perderá o progresso.')){
+    S.cells=gerarCartela(S.meta,S.n,S.maxDep); S.hist=[];
+    salvarCofre(); render(); toast('🔄 Cartela zerada!');
+  }
+}
+
+// ===== 🎊 CHUVA DE PAPEL PICADO + MENSAGEM =====
+function celebrar(){
+  const falta=S.meta-depositado();
+  confetti();
+  if(falta>0) toast('🎉 Parabéns, poupou mais um pouquinho! Rumo aos '+fmt(falta));
+  else toast('🏆 Meta alcançada! Você conseguiu!');
+}
+function confetti(){
+  const cores=['#FFD700','#FF6B6B','#4CAF50','#2196F3','#FFA500','#E91E63','#9C27B0'];
+  for(let i=0;i<70;i++){
+    const p=document.createElement('div');
+    p.className='confetti';
+    p.style.left=Math.random()*100+'vw';
+    p.style.background=cores[Math.floor(Math.random()*cores.length)];
+    p.style.animationDuration=(2+Math.random()*2)+'s';
+    p.style.transform='rotate('+Math.random()*360+'deg)';
+    p.style.width=(6+Math.random()*8)+'px';
+    p.style.height=(10+Math.random()*8)+'px';
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),4200);
   }
 }
 
 // ===== BACKUP =====
 function exportarBackup(){
-  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'cofre-raissa-'+new Date().toISOString().slice(0,10)+'.json';
-  a.click();
-  toast('💾 Backup salvo!');
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='cofre-raissa-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click(); toast('💾 Backup salvo!');
 }
-
 function importarBackup(ev){
-  const file = ev.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if(!data.meta||!data.maxDep){ toast('⚠️ Arquivo inválido'); return; }
-      S.meta=data.meta; S.maxDep=data.maxDep; S.n=data.n||60;
-      S.depositado=data.depositado||0; S.hist=data.hist||[];
-      salvarCofre(); mostrarCofre(); toast('📂 Backup restaurado!');
-    } catch(err){ toast('❌ Erro ao ler arquivo'); }
-  };
+  const file=ev.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{ try{ const d=JSON.parse(e.target.result);
+    if(!d.meta||!d.cells){ toast('⚠️ Arquivo inválido'); return; }
+    S.meta=d.meta; S.maxDep=d.maxDep; S.n=d.n||60; S.cells=d.cells; S.hist=d.hist||[];
+    salvarCofre(); mostrarCofre(); toast('📂 Backup restaurado!');
+  }catch(err){ toast('❌ Erro ao ler arquivo'); } };
   reader.readAsText(file);
 }
 
 // ===== TOAST =====
-function toast(m){
-  const t=document.getElementById('toast');
-  t.textContent=m; t.classList.add('on');
-  setTimeout(()=>t.classList.remove('on'),3000);
-}
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),3500); }
 
 // ===== EVENTOS =====
-document.getElementById('btnLogin').addEventListener('click', login);
-document.getElementById('btnReg').addEventListener('click', registrar);
-document.getElementById('meta').addEventListener('input', ajustarSlider);
-document.getElementById('maxDep').addEventListener('input', ajustarSlider);
-document.getElementById('nCells').addEventListener('input', e=>{ document.getElementById('nLabel').textContent=e.target.value+' células'; });
-document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') fecharModal(); });
-document.getElementById('depVal').addEventListener('keypress', e=>{ if(e.key==='Enter') depositarLivre(); });
+document.getElementById('btnLogin').addEventListener('click',login);
+document.getElementById('btnReg').addEventListener('click',registrar);
+document.getElementById('meta').addEventListener('input',ajustarSlider);
+document.getElementById('maxDep').addEventListener('input',ajustarSlider);
+document.getElementById('nCells').addEventListener('input',e=>{document.getElementById('nLabel').textContent=e.target.value+' células';});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal();});
+document.getElementById('depVal').addEventListener('keypress',e=>{if(e.key==='Enter')depositarLivre();});
 
-// ===== INICIAR =====
 checkAuth();
 </script>
 </body>
