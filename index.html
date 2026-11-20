@@ -11,16 +11,16 @@
 body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%,#6b1d3a 30%,#7a2048 60%,#4a1028 100%);min-height:100vh;color:#f5e6d3;padding:16px}
 .container{max-width:720px;margin:0 auto}
 
-/* HEADER */
-.header{text-align:center;padding:28px 20px 20px;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.04) 100%);border-radius:20px;border:1px solid rgba(212,175,140,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.3);margin-bottom:16px;position:relative;backdrop-filter:blur(10px)}
-.header h1{font-family:'Playfair Display',serif;font-size:1.5em;color:#d4a574;letter-spacing:1px;font-weight:600}
-.header h1 span{color:#e8c9a0}
-.header .subtitle{color:rgba(245,230,211,0.7);margin-top:6px;font-style:italic;font-size:.85em;font-weight:300}
-.header .top-bar{display:flex;justify-content:space-between;align-items:center;position:absolute;top:12px;left:16px;right:16px}
-.header .greeting{font-size:.82em;color:#e8c9a0;font-weight:500}
-.header .user-pill{font-size:.72em;color:rgba(245,230,211,0.6);background:rgba(255,255,255,0.08);padding:4px 10px;border-radius:16px}
-.header .btn-config{background:transparent;color:#e8c9a0;font-size:1.1em;padding:6px 10px;border-radius:50%;cursor:pointer;border:none}
-.header .btn-config:hover{background:rgba(255,255,255,0.1)}
+/* HEADER — Nome em destaque, app discreto */
+.header{text-align:center;padding:32px 20px 24px;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.04) 100%);border-radius:20px;border:1px solid rgba(212,175,140,0.2);box-shadow:0 8px 32px rgba(0,0,0,0.3);margin-bottom:16px;position:relative;backdrop-filter:blur(10px)}
+.header .app-name{font-family:'Playfair Display',serif;font-size:.85em;color:rgba(212,175,140,0.6);letter-spacing:2px;font-weight:400;text-transform:uppercase;margin-bottom:16px}
+.header .greeting-name{font-family:'Playfair Display',serif;font-size:2.2em;color:#d4a574;font-weight:700;margin-bottom:8px;line-height:1.2}
+.header .greeting-name .hello{font-size:.5em;color:rgba(245,230,211,0.7);font-weight:400;display:block;margin-bottom:4px}
+.header .subtitle{color:rgba(245,230,211,0.6);font-style:italic;font-size:.82em;font-weight:300}
+.header .top-right{position:absolute;top:14px;right:16px;display:flex;align-items:center;gap:8px}
+.header .user-pill{font-size:.7em;color:rgba(245,230,211,0.5);background:rgba(255,255,255,0.06);padding:4px 10px;border-radius:16px}
+.header .btn-config{background:transparent;color:rgba(245,230,211,0.6);font-size:1em;padding:6px 10px;border-radius:50%;cursor:pointer;border:none}
+.header .btn-config:hover{background:rgba(255,255,255,0.1);color:#e8c9a0}
 
 /* CARD */
 .card{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.03) 100%);border-radius:20px;border:1px solid rgba(212,175,140,0.15);padding:22px 24px;margin-bottom:16px;box-shadow:0 4px 20px rgba(0,0,0,0.2);backdrop-filter:blur(10px)}
@@ -62,7 +62,6 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 .cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);border:1.5px solid rgba(212,175,140,0.3);border-radius:10px;font-weight:500;color:#e8c9a0;font-size:.82em;cursor:pointer;transition:all .25s;user-select:none;position:relative;font-family:'Inter',sans-serif}
 .cell:hover{transform:scale(1.08);box-shadow:0 4px 12px rgba(212,175,140,0.2);border-color:#d4a574}
 .cell.big{background:rgba(212,175,140,0.15)}
-/* 🌟 CÉLULA PREENCHIDA = DOURADO */
 .cell.done{background:linear-gradient(135deg,#d4a574,#b8860b);color:#fff;border-color:#e8c9a0;box-shadow:inset 0 2px 4px rgba(0,0,0,0.15)}
 .cell.done::after{content:'✓';position:absolute;top:3px;right:6px;font-size:.65em;color:#fff;font-weight:bold}
 .cell.final{background:linear-gradient(135deg,#e8c9a0,#d4a574);color:#4a1028;border-color:#e8c9a0;animation:pulseFinal 2s infinite}
@@ -96,7 +95,7 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 .mbox input:focus{border-color:#d4a574}
 .mbox input::placeholder{color:rgba(245,230,211,0.4)}
 
-/* 🎯 MENU CONFIG — FORA DO HEADER, POSICIONADO CORRETAMENTE */
+/* MENU CONFIG */
 .config-menu{display:none;position:fixed;top:70px;right:20px;background:linear-gradient(135deg,#6b1d3a,#4a1028);border-radius:14px;border:1px solid rgba(212,175,140,0.3);box-shadow:0 8px 24px rgba(0,0,0,0.5);padding:6px;min-width:180px;z-index:500}
 .config-menu.on{display:block}
 .config-menu button{display:block;width:100%;text-align:left;padding:11px 14px;border:none;background:transparent;color:#f5e6d3;font-size:.85em;cursor:pointer;border-radius:8px;font-family:'Inter',sans-serif}
@@ -126,11 +125,10 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 .login-card .msg{color:#d4a574;font-size:.82em;text-align:center;margin-top:8px}
 
 @media(max-width:600px){
-  .header h1{font-size:1.3em}
+  .header .greeting-name{font-size:1.8em}
   .grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:5px}
   .cell{font-size:.72em}
   .info-cofre .val{font-size:1.2em}
-  .header .greeting{font-size:.72em}
   .config-menu{right:12px;top:65px}
 }
 </style>
@@ -138,20 +136,21 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 <body>
 <div class="container">
 
-<!-- HEADER -->
+<!-- HEADER — Nome em destaque -->
 <div class="header">
-  <div class="top-bar">
-    <div class="greeting" id="greeting" style="display:none">Olá, <span id="userName"></span>!</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="user-pill" id="userPill" style="display:none">👤 <span id="userMail"></span></div>
-      <button class="btn-config" id="btnConfig" style="display:none" onclick="toggleConfig()">⚙️</button>
-    </div>
+  <div class="top-right">
+    <div class="user-pill" id="userPill" style="display:none">👤 <span id="userMail"></span></div>
+    <button class="btn-config" id="btnConfig" style="display:none" onclick="toggleConfig()">⚙️</button>
   </div>
-  <h1>Cofre <span>Rai$$a</span></h1>
+  <div class="app-name">Cofre Rai$$a</div>
+  <div class="greeting-name" id="greetingName" style="display:none">
+    <span class="hello">Olá,</span>
+    <span id="userNameDisplay"></span>!
+  </div>
   <p class="subtitle">"Pequenos passos hoje, grandes conquistas amanhã."</p>
 </div>
 
-<!-- MENU CONFIG (FORA DO HEADER) -->
+<!-- MENU CONFIG -->
 <div class="config-menu" id="configMenu">
   <button onclick="novoDesafio()">🚀 Novo desafio</button>
   <button onclick="exportarBackup()">💾 Exportar backup</button>
@@ -164,7 +163,7 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 <!-- CELEBRAÇÃO -->
 <div class="celeb" id="celeb">
   <div class="trofeu">🏆</div>
-  <h2>Parabéns!</h2>
+  <h2>Parabéns, <span id="celebName"></span>!</h2>
   <p class="msg" id="celebMsg"></p>
   <div class="stats">
     <div class="stat-box"><div class="num" id="celebMeta"></div><div class="lbl">Conquistado</div></div>
@@ -277,9 +276,14 @@ async function checkAuth(){
     document.getElementById('userPill').style.display='block';
     document.getElementById('btnConfig').style.display='block';
     document.getElementById('userMail').textContent = user.email.split('@')[0];
+    // 🌟 Nome em destaque
     if(S.userName){
-      document.getElementById('greeting').style.display='block';
-      document.getElementById('userName').textContent = S.userName;
+      document.getElementById('greetingName').style.display='block';
+      document.getElementById('userNameDisplay').textContent = S.userName;
+    } else {
+      // Se não tem nome salvo, usa o e-mail
+      document.getElementById('greetingName').style.display='block';
+      document.getElementById('userNameDisplay').textContent = user.email.split('@')[0];
     }
     if(S.meta>0 && S.cells.length) mostrarCofre(); else mostrarSetup();
   } else {
@@ -323,7 +327,7 @@ async function logout(){
   document.getElementById('telaApp').style.display='none';
   document.getElementById('userPill').style.display='none';
   document.getElementById('btnConfig').style.display='none';
-  document.getElementById('greeting').style.display='none';
+  document.getElementById('greetingName').style.display='none';
   document.getElementById('configMenu').classList.remove('on');
 }
 
@@ -484,6 +488,7 @@ function render(){
   
   if(pct>=100){
     document.getElementById('celeb').classList.add('on');
+    document.getElementById('celebName').textContent = S.userName || 'guerreira';
     document.getElementById('celebMeta').textContent = fmt(S.meta);
     document.getElementById('celebDep').textContent = S.hist.length;
     document.getElementById('celebTotal').textContent = S.desafiosConcluidos.length + 1;
