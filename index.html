@@ -41,12 +41,6 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 .btn-deposito:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(184,134,11,0.4)}
 .btn-desfazer{background:rgba(255,255,255,0.1);color:#e8c9a0;border:1px solid rgba(212,175,140,0.3)}
 .btn-desfazer:hover{background:rgba(255,255,255,0.15)}
-.btn-mode{padding:20px;background:rgba(255,255,255,0.05);border:2px solid rgba(212,175,140,0.3);border-radius:16px;color:#f5e6d3;cursor:pointer;transition:all .3s;text-align:left;width:100%;margin-bottom:10px;font-family:'Inter',sans-serif}
-.btn-mode:hover{background:rgba(212,175,140,0.1);border-color:#d4a574;transform:translateY(-2px)}
-.btn-mode .mode-icon{font-size:2em;margin-bottom:8px}
-.btn-mode .mode-title{font-family:'Playfair Display',serif;font-size:1.2em;color:#d4a574;font-weight:600;margin-bottom:4px}
-.btn-mode .mode-desc{font-size:.85em;color:rgba(245,230,211,0.7)}
-.btn-mode.active{background:rgba(212,175,140,0.15);border-color:#d4a574}
 
 .setup-form{max-width:420px;margin:0 auto}
 .setup-form label{display:block;margin-bottom:5px;color:rgba(245,230,211,0.7);font-size:.82em;font-weight:500}
@@ -185,7 +179,6 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
   <div class="card" id="telaSetup" style="display:none">
     <h2>✨ Como quer criar seu desafio?</h2>
     
-    <!-- SELETOR DE MODALIDADE -->
     <div class="mode-selector">
       <div class="mode-btn active" id="modeValor" onclick="escolherModo('valor')">
         <div class="mode-emoji">🎯</div>
@@ -197,7 +190,6 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
       </div>
     </div>
 
-    <!-- FORMULÁRIO POR VALOR -->
     <div id="formValor" class="setup-form">
       <label>Qual é sua meta?</label>
       <input type="number" id="meta" placeholder="Ex: 1000" min="10" step="0.01">
@@ -209,7 +201,6 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
       <button class="btn btn-deposito" style="width:100%" onclick="criar()">✨ Criar meu cofre</button>
     </div>
 
-    <!-- FORMULÁRIO POR PRAZO -->
     <div id="formPrazo" class="setup-form" style="display:none">
       <label>Qual é sua meta?</label>
       <input type="number" id="metaPrazo" placeholder="Ex: 1200" min="10" step="0.01">
@@ -290,14 +281,6 @@ const sb = window.supabase.createClient(
 let S = { meta:0, n:60, maxDep:50, cells:[], hist:[], userId:null, userMail:'', userName:'', desafiosConcluidos:[], modo:'valor' };
 const fmt = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const depositado = () => Math.round(S.cells.filter(c=>c.done).reduce((a,c)=>a+c.v,0)*100)/100;
-
-// Determina o STEP dinâmico baseado no teto
-function getStep(maxDep){
-  if(maxDep <= 10) return 1;
-  if(maxDep <= 50) return 5;
-  if(maxDep <= 200) return 10;
-  return 25;
-}
 
 async function checkAuth(){
   const { data:{ user } } = await sb.auth.getUser();
@@ -381,7 +364,6 @@ async function carregarCofre(){
   }
 }
 
-// ===== SELETOR DE MODALIDADE =====
 function escolherModo(modo){
   S.modo = modo;
   document.getElementById('modeValor').classList.toggle('active', modo==='valor');
@@ -390,7 +372,6 @@ function escolherModo(modo){
   document.getElementById('formPrazo').style.display = modo==='prazo'?'block':'none';
 }
 
-// ===== MODALIDADE POR VALOR =====
 function ajustarSlider(){
   const meta=parseFloat(document.getElementById('meta').value)||0;
   const maxDep=Math.max(5,parseFloat(document.getElementById('maxDep').value)||50);
@@ -416,7 +397,6 @@ function criar(){
   salvarCofre(); mostrarCofre(); toast('✨ Seu cofre está pronto!');
 }
 
-// ===== MODALIDADE POR PRAZO =====
 function criarPorPrazo(){
   const m=parseFloat(document.getElementById('metaPrazo').value);
   const meses=parseInt(document.getElementById('prazoMeses').value);
@@ -424,22 +404,16 @@ function criarPorPrazo(){
   if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
   if(!meses||meses<1){ toast('⚠️ Prazo mínimo 1 mês'); return; }
   
-  // Calcula quanto por mês
   const porMes = m / meses;
-  // 4 células por mês (semanal)
   const celulasPorMes = 4;
   const totalCelulas = meses * celulasPorMes;
   
-  // Gera valores para cada mês separadamente (para manter coerência mensal)
   let todasCelulas = [];
   let restante = m;
   
   for(let mes=0; mes<meses; mes++){
-    // Último mês recebe o que sobrar para fechar exato
     let valorMes = (mes === meses-1) ? restante : porMes;
     if(mes < meses-1) restante -= porMes;
-    
-    // Gera 4 células variadas para este mês
     let valoresMes = gerarValoresCartela(valorMes, celulasPorMes, mx);
     todasCelulas = todasCelulas.concat(valoresMes);
   }
@@ -451,97 +425,59 @@ function criarPorPrazo(){
   toast(`✨ ${meses} meses · ${totalCelulas} depósitos semanais!`);
 }
 
-// ===== 🎯 ALGORITMO QUE GARANTE VARIAÇÃO =====
+// ===== 🎯 ALGORITMO CORRIGIDO: variação + soma exata garantida =====
 function gerarValoresCartela(restante, n, maxDep){
-  if(restante<=0) return [];
-  
-  const step = getStep(maxDep); // STEP dinâmico
-  
-  // Caso especial: restante menor que step
-  if(restante < step || n === 1) {
-    return [Math.round(restante*100)/100];
-  }
-  
-  const maxU = Math.max(1, Math.floor(maxDep/step));
-  let baseU = Math.floor(restante/step);
-  let restoCents = Math.round((restante - baseU*step)*100);
-  
-  let nMin = Math.ceil(baseU/maxU);
-  if(n<nMin) n=nMin;
-  if(n>baseU) n=baseU;
-  if(n<1) n=1;
-  
-  // 🎲 Viés forte para variação: usa distribuição uniforme + ruído
-  // Em vez de r^2 (que concentra em valores baixos), usa mistura
-  let w=[];
-  for(let i=0;i<n;i++){
-    // Mistura: 50% aleatório uniforme + 50% viés para baixo
-    const uniforme = Math.random();
-    const viesBaixo = Math.pow(Math.random(), 1.5);
-    w.push(uniforme * 0.5 + viesBaixo * 0.5 + 0.1);
-  }
-  
-  let sw=w.reduce((a,b)=>a+b,0);
-  let u=w.map(x=>x/sw*baseU);
-  
-  // Water-filling com teto
-  for(let it=0;it<80;it++){
-    let exc=0, space=[];
-    for(let i=0;i<n;i++){
-      if(u[i]>maxU){exc+=u[i]-maxU;u[i]=maxU;}
-      else if(u[i]<1) {exc+=1-u[i];u[i]=1;}
-      else if(u[i]<maxU) space.push(i);
-    }
-    if(exc<0.001||!space.length)break;
-    let totSpace=space.reduce((a,i)=>a+(maxU-u[i]),0);
-    if(totSpace<=0)break;
-    for(const i of space){u[i]+=exc*(maxU-u[i])/totSpace; if(u[i]>maxU)u[i]=maxU;}
-  }
-  
-  let ui=u.map(x=>Math.max(1,Math.round(x)));
-  let s=ui.reduce((a,b)=>a+b,0), g=0;
-  while(s!==baseU && g<200000){
-    g++;
-    if(s>baseU){let i=ui.findIndex(v=>v>1); if(i<0)break; ui[i]--; s--;}
-    else {let i=ui.findIndex(v=>v<maxU); if(i<0)break; ui[i]++; s++;}
-  }
-  
-  let vals=ui.map(x=>x*step);
-  
-  // Absorve centavos
-  if(restoCents>0){
-    const extra=restoCents/100;
-    let i=vals.findIndex(v=>v+extra<=maxDep+0.001);
-    if(i>=0) vals[i]=Math.round((vals[i]+extra)*100)/100;
-    else vals.push(extra);
-  }
-  
-  // 🎯 GARANTIA DE VARIAÇÃO: se todos os valores são iguais, redistribui
-  const todosIguais = vals.every(v => v === vals[0]);
-  if(todosIguais && vals.length > 1){
-    // Pega 1 de cada célula do meio e redistribui
-    const valorBase = vals[0];
-    const total = valorBase * vals.length;
-    // Cria variação: algumas células ficam menores, outras maiores
-    for(let i=0; i<Math.floor(vals.length/2); i++){
-      const idx1 = i;
-      const idx2 = vals.length - 1 - i;
-      const transferencia = Math.min(step, valorBase - step);
-      if(transferencia > 0 && vals[idx2] + transferencia <= maxDep){
-        vals[idx1] -= transferencia;
-        vals[idx2] += transferencia;
-      }
-    }
-    // Ajusta soma final
-    const somaAtual = vals.reduce((a,b)=>a+b,0);
-    const diff = total - somaAtual;
-    if(Math.abs(diff) > 0.001){
-      vals[vals.length-1] = Math.round((vals[vals.length-1] + diff)*100)/100;
+  restante = Math.round(restante*100)/100;
+  if(restante<=0 || n<=0) return [];
+  const minCell = 1;
+  const maxN = Math.max(1, Math.floor(restante / minCell));
+  if(n > maxN) n = maxN;
+
+  // 1) gera pesos aleatórios (variação garantida) e distribui proporcional com teto
+  let pesos = [];
+  for(let i=0;i<n;i++) pesos.push(0.4 + Math.random()*1.8);
+  const somaPesos = pesos.reduce((a,b)=>a+b,0);
+  let vals = pesos.map(p => {
+    let v = restante * p / somaPesos;
+    v = Math.min(v, maxDep);
+    v = Math.max(minCell, Math.round(v));
+    return v;
+  });
+
+  // 2) corrige a soma iterativamente mexendo só em células com folga
+  let diff = Math.round((restante - vals.reduce((a,b)=>a+b,0))*100)/100;
+  let guard = 0;
+  while(Math.abs(diff) >= 0.01 && guard < 5000){
+    guard++;
+    if(diff > 0){
+      let i = vals.findIndex(v => v < maxDep - 0.001);
+      if(i < 0) break;
+      const add = Math.min(diff, maxDep - vals[i]);
+      vals[i] = Math.round((vals[i]+add)*100)/100;
+      diff = Math.round((diff-add)*100)/100;
+    } else {
+      let i = vals.findIndex(v => v > minCell + 0.001);
+      if(i < 0) break;
+      const sub = Math.min(-diff, vals[i] - minCell);
+      vals[i] = Math.round((vals[i]-sub)*100)/100;
+      diff = Math.round((diff+sub)*100)/100;
     }
   }
-  
-  // Embaralha
-  for(let j=vals.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[vals[j],vals[k]]=[vals[k],vals[j]];}
+
+  // 3) 🔒 ÚLTIMO RECURSO: força a soma exata na célula maior (nunca deixa sobrar)
+  diff = Math.round((restante - vals.reduce((a,b)=>a+b,0))*100)/100;
+  if(Math.abs(diff) >= 0.01){
+    let idxMax = 0;
+    for(let i=1;i<vals.length;i++) if(vals[i]>vals[idxMax]) idxMax = i;
+    vals[idxMax] = Math.round((vals[idxMax]+diff)*100)/100;
+    if(vals[idxMax] < minCell) vals[idxMax] = minCell;
+  }
+
+  // 4) embaralha pra não ficar óbvio
+  for(let j=vals.length-1;j>0;j--){
+    const k = Math.floor(Math.random()*(j+1));
+    [vals[j],vals[k]] = [vals[k],vals[j]];
+  }
   return vals;
 }
 
@@ -549,7 +485,6 @@ function mostrarSetup(){
   document.getElementById('telaSetup').style.display='block'; 
   document.getElementById('telaCofre').style.display='none'; 
   document.getElementById('celeb').classList.remove('on'); 
-  // Restaura modalidade
   escolherModo(S.modo || 'valor');
 }
 function mostrarCofre(){ document.getElementById('telaSetup').style.display='none'; document.getElementById('telaCofre').style.display='block'; render(); }
@@ -733,7 +668,6 @@ function desfazer(){
 function resetar(){
   if(confirm('Resetar a cartela? Perderá o progresso.')){
     if(S.modo==='prazo'){
-      // Recria por prazo
       const meses = Math.round(S.n / 4);
       const porMes = S.meta / meses;
       let todasCelulas = [];
