@@ -176,11 +176,11 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
     <div id="formValor" class="setup-form">
       <label>Qual é sua meta?</label>
       <input type="number" id="meta" placeholder="Ex: 1000" min="10" step="0.01">
-      <label>Valor máximo por depósito</label>
+      <label>Valor sugerido por depósito (referência)</label>
       <input type="number" id="maxDep" placeholder="Ex: 50" min="5" step="1" value="50">
-      <label style="text-align:center">Quantidade de células: <b id="nLabel" style="color:#d4a574">20</b></label>
-      <input type="range" id="nCells" min="10" max="100" value="20">
-      <p class="hint">O app garante valores variados que somam sua meta 💛</p>
+      <label style="text-align:center">Quantidade de células: <b id="nLabel" style="color:#d4a574">50</b></label>
+      <input type="range" id="nCells" min="5" max="1000" value="50">
+      <p class="hint" id="sliderHint">O slider define quantas células · valores se ajustam 💛</p>
       <button class="btn btn-deposito" style="width:100%" onclick="criar()">✨ Criar meu cofre</button>
     </div>
 
@@ -200,7 +200,7 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
         <option value="18">18 meses</option>
         <option value="24">24 meses (2 anos)</option>
       </select>
-      <label>Valor máximo por depósito (sugestão)</label>
+      <label>Valor sugerido por depósito (referência)</label>
       <input type="number" id="maxDepPrazo" placeholder="Ex: 100" min="5" step="1" value="100">
       <p class="hint">4 depósitos por mês (semanal) · valores variados 💛</p>
       <button class="btn btn-deposito" style="width:100%" onclick="criarPorPrazo()">✨ Criar meu cofre</button>
@@ -261,14 +261,9 @@ const sb = window.supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzY3BlZ3VmaXRwcnlpZWV3aXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMjM0NTYsImV4cCI6MjExMDY5OTQ1Nn0.UPePycoAoyyCL0wP-UVkfF4MRmEJdXOSl-PqIAvaguE'
 );
 
-let S = { meta:0, n:20, maxDep:50, cells:[], hist:[], userId:null, userMail:'', userName:'', desafiosConcluidos:[], modo:'valor' };
+let S = { meta:0, n:50, maxDep:50, cells:[], hist:[], userId:null, userMail:'', userName:'', desafiosConcluidos:[], modo:'valor' };
 const fmt = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const depositado = () => Math.round(S.cells.filter(c=>c.done).reduce((a,c)=>a+c.v,0)*100)/100;
-
-// 🎯 Mínimo por célula = 20% do teto (garante variação visual)
-function getMinCell(maxDep){
-  return Math.max(1, Math.round(maxDep * 0.2));
-}
 
 async function checkAuth(){
   const { data:{ user } } = await sb.auth.getUser();
@@ -280,18 +275,10 @@ async function checkAuth(){
     document.getElementById('userPill').style.display='block';
     document.getElementById('btnConfig').style.display='block';
     document.getElementById('userMail').textContent = user.email.split('@')[0];
-    if(S.userName){
-      document.getElementById('greetingName').style.display='block';
-      document.getElementById('userNameDisplay').textContent = S.userName;
-    } else {
-      document.getElementById('greetingName').style.display='block';
-      document.getElementById('userNameDisplay').textContent = user.email.split('@')[0];
-    }
+    if(S.userName){ document.getElementById('greetingName').style.display='block'; document.getElementById('userNameDisplay').textContent = S.userName; }
+    else { document.getElementById('greetingName').style.display='block'; document.getElementById('userNameDisplay').textContent = user.email.split('@')[0]; }
     if(S.meta>0 && S.cells.length) mostrarCofre(); else mostrarSetup();
-  } else {
-    document.getElementById('telaLogin').style.display='block';
-    document.getElementById('telaApp').style.display='none';
-  }
+  } else { document.getElementById('telaLogin').style.display='block'; document.getElementById('telaApp').style.display='none'; }
 }
 
 async function login(){
@@ -309,20 +296,16 @@ async function registrar(){
   if(senha.length<6){ toast('⚠️ Senha mínimo 6 caracteres'); return; }
   const { error } = await sb.auth.signUp({email,password:senha});
   if(error){ toast('❌ '+error.message); return; }
-  S.userName = nome;
-  await salvarNome();
+  S.userName = nome; await salvarNome();
   document.getElementById('regMsg').textContent='✨ Conta criada! Faça login.';
   toast('🎉 Conta criada!');
 }
 
-async function salvarNome(){
-  if(!S.userId) return;
-  await sb.from('cofres').upsert({ user_id:S.userId, user_name:S.userName },{onConflict:'user_id'});
-}
+async function salvarNome(){ if(!S.userId) return; await sb.from('cofres').upsert({ user_id:S.userId, user_name:S.userName },{onConflict:'user_id'}); }
 
 async function logout(){
   await sb.auth.signOut();
-  S={meta:0,n:20,maxDep:50,cells:[],hist:[],userId:null,userMail:'',userName:'',desafiosConcluidos:[],modo:'valor'};
+  S={meta:0,n:50,maxDep:50,cells:[],hist:[],userId:null,userMail:'',userName:'',desafiosConcluidos:[],modo:'valor'};
   document.getElementById('telaLogin').style.display='block';
   document.getElementById('telaApp').style.display='none';
   document.getElementById('userPill').style.display='none';
@@ -347,8 +330,7 @@ async function carregarCofre(){
     S.meta=+data.meta; S.maxDep=+data.max_dep; S.n=data.n_cells;
     S.cells=data.cells||[]; S.hist=data.hist||[];
     S.desafiosConcluidos=data.desafios_concluidos||[];
-    S.userName=data.user_name||'';
-    S.modo=data.modo||'valor';
+    S.userName=data.user_name||''; S.modo=data.modo||'valor';
   }
 }
 
@@ -360,21 +342,21 @@ function escolherModo(modo){
   document.getElementById('formPrazo').style.display = modo==='prazo'?'block':'none';
 }
 
+// 🎯 SLIDER LIVRE: usuário escolhe quantas células quer
 function ajustarSlider(){
   const meta=parseFloat(document.getElementById('meta').value)||0;
   const maxDep=Math.max(5,parseFloat(document.getElementById('maxDep').value)||50);
   const sl=document.getElementById('nCells');
-  const minCell = getMinCell(maxDep);
+  
   if(meta>0){
-    // N mínimo = meta/maxDep (cada célula no máximo = teto)
-    // N máximo = meta/minCell (cada célula no mínimo = 20% do teto)
-    const nMin = Math.max(2, Math.ceil(meta/maxDep));
-    const nMax = Math.min(200, Math.max(nMin*2, Math.floor(meta/minCell)));
-    sl.min = nMin; sl.max = nMax;
-    if(+sl.value < nMin) sl.value = nMin;
-    if(+sl.value > nMax) sl.value = nMax;
+    const media = meta / sl.value;
     document.getElementById('nLabel').textContent = sl.value;
-  } else { sl.min=10; sl.max=100; document.getElementById('nLabel').textContent=sl.value; }
+    document.getElementById('sliderHint').textContent = 
+      `Média por célula: ${fmt(media)} · Teto sugerido: ${fmt(maxDep)} 💛`;
+  } else { 
+    document.getElementById('nLabel').textContent=sl.value;
+    document.getElementById('sliderHint').textContent='Defina a meta para ver a média 💛';
+  }
 }
 
 function criar(){
@@ -382,7 +364,6 @@ function criar(){
   const mx=parseFloat(document.getElementById('maxDep').value);
   if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
   if(!mx||mx<5){ toast('⚠️ Teto mínimo R$ 5,00'); return; }
-  if(mx>m){ toast('⚠️ Teto não pode ser maior que a meta'); return; }
   S.meta=m; S.maxDep=mx; S.n=parseInt(document.getElementById('nCells').value);
   S.cells=gerarValoresCartela(m,S.n,mx).map(v=>({v, done:false}));
   S.hist=[]; S.modo='valor';
@@ -395,21 +376,17 @@ function criarPorPrazo(){
   const mx=parseFloat(document.getElementById('maxDepPrazo').value)||100;
   if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
   if(!meses||meses<1){ toast('⚠️ Prazo mínimo 1 mês'); return; }
-  
   const porMes = m / meses;
   const celulasPorMes = 4;
   const totalCelulas = meses * celulasPorMes;
-  
   let todasCelulas = [];
   let restante = m;
-  
   for(let mes=0; mes<meses; mes++){
     let valorMes = (mes === meses-1) ? restante : porMes;
     if(mes < meses-1) restante -= porMes;
     let valoresMes = gerarValoresCartela(valorMes, celulasPorMes, mx);
     todasCelulas = todasCelulas.concat(valoresMes);
   }
-  
   S.meta=m; S.maxDep=mx; S.n=totalCelulas;
   S.cells=todasCelulas.map(v=>({v, done:false}));
   S.hist=[]; S.modo='prazo';
@@ -417,28 +394,22 @@ function criarPorPrazo(){
   toast(`✨ ${meses} meses · ${totalCelulas} depósitos!`);
 }
 
-// ===== 🎯 ALGORITMO CORRIGIDO: variação + soma exata + mínimo inteligente =====
+// ===== 🎯 ALGORITMO: slider define N, valores se ajustam =====
 function gerarValoresCartela(restante, n, maxDep){
   restante = Math.round(restante*100)/100;
   if(restante<=0 || n<=0) return [];
   
-  // 🎯 Mínimo = 20% do teto (garante que valores não fiquem todos em R$ 1)
-  const minCell = getMinCell(maxDep);
+  // Mínimo = 1 real (flexível)
+  const minCell = 1;
   
-  // Limita n para que caiba no restante
-  const maxN = Math.max(1, Math.floor(restante / minCell));
-  if(n > maxN) n = maxN;
-  if(n < 1) n = 1;
-
-  // 1) Gera pesos aleatórios com variação forte
+  // 1) Pesos aleatórios com variação forte
   let pesos = [];
   for(let i=0;i<n;i++) pesos.push(0.3 + Math.random()*2.0);
   const somaPesos = pesos.reduce((a,b)=>a+b,0);
   
-  // 2) Distribui proporcionalmente com teto e mínimo
+  // 2) Distribui proporcionalmente (sem limite rígido de teto)
   let vals = pesos.map(p => {
     let v = restante * p / somaPesos;
-    v = Math.min(v, maxDep);
     v = Math.max(minCell, v);
     return v;
   });
@@ -449,27 +420,27 @@ function gerarValoresCartela(restante, n, maxDep){
   while(Math.abs(diff) >= 0.01 && guard < 5000){
     guard++;
     if(diff > 0){
-      let i = vals.findIndex(v => v < maxDep - 0.001);
-      if(i < 0) break;
-      const add = Math.min(diff, maxDep - vals[i]);
-      vals[i] = Math.round((vals[i]+add)*100)/100;
-      diff = Math.round((diff-add)*100)/100;
+      // Adiciona na maior célula
+      let i = 0;
+      for(let j=1;j<vals.length;j++) if(vals[j]>vals[i]) i=j;
+      vals[i] = Math.round((vals[i]+diff)*100)/100;
+      diff = 0;
     } else {
-      let i = vals.findIndex(v => v > minCell + 0.001);
-      if(i < 0) break;
+      // Subtrai da maior célula
+      let i = 0;
+      for(let j=1;j<vals.length;j++) if(vals[j]>vals[i]) i=j;
       const sub = Math.min(-diff, vals[i] - minCell);
       vals[i] = Math.round((vals[i]-sub)*100)/100;
       diff = Math.round((diff+sub)*100)/100;
     }
   }
 
-  // 4) 🔒 Força soma exata na célula maior se ainda sobrar
+  // 4) 🔒 Força soma exata
   diff = Math.round((restante - vals.reduce((a,b)=>a+b,0))*100)/100;
   if(Math.abs(diff) >= 0.01){
     let idxMax = 0;
     for(let i=1;i<vals.length;i++) if(vals[i]>vals[idxMax]) idxMax = i;
     vals[idxMax] = Math.round((vals[idxMax]+diff)*100)/100;
-    if(vals[idxMax] < minCell) vals[idxMax] = minCell;
   }
 
   // 5) Embaralha
@@ -496,12 +467,9 @@ document.addEventListener('click', e=>{
 });
 
 function novoDesafio(){
-  if(S.meta > 0){
-    S.desafiosConcluidos.push({ meta:S.meta, maxDep:S.maxDep, depositos:S.hist.length, concluidoEm:Date.now(), modo:S.modo });
-  }
-  S.meta=0; S.cells=[]; S.hist=[]; S.n=20; S.maxDep=50; S.modo='valor';
-  salvarCofre();
-  mostrarSetup();
+  if(S.meta > 0){ S.desafiosConcluidos.push({ meta:S.meta, maxDep:S.maxDep, depositos:S.hist.length, concluidoEm:Date.now(), modo:S.modo }); }
+  S.meta=0; S.cells=[]; S.hist=[]; S.n=50; S.maxDep=50; S.modo='valor';
+  salvarCofre(); mostrarSetup();
   if(S.desafiosConcluidos.length > 0){
     const ultima = S.desafiosConcluidos[S.desafiosConcluidos.length-1];
     document.getElementById('meta').value = ultima.meta;
@@ -521,8 +489,7 @@ function recomporCartela(){
   if (remaining <= 0.01) { S.cells.forEach(c => { if (!c.done) { c.v = 0; c.done = true; } }); return; }
   const ungreenIdx = S.cells.map((c, i) => c.done ? -1 : i).filter(i => i !== -1);
   let numUngreen = ungreenIdx.length;
-  const minCell = getMinCell(S.maxDep);
-  while (numUngreen > 1 && remaining < numUngreen * minCell) numUngreen--;
+  while (numUngreen > 1 && remaining < numUngreen * 1) numUngreen--;
   if (numUngreen === 1) {
     const idx = ungreenIdx[0];
     S.cells[idx].v = remaining; S.cells[idx].done = false;
@@ -542,9 +509,8 @@ function render(){
   const pct=S.meta>0?Math.min(100,dep/S.meta*100):0;
   document.getElementById('dMeta').textContent=fmt(S.meta);
   document.getElementById('pfill').style.width=pct+'%';
-  document.getElementById('tagMax').textContent='Teto: '+fmt(S.maxDep);
+  document.getElementById('tagMax').textContent='Sugestão: '+fmt(S.maxDep);
   document.getElementById('tagN').textContent=S.cells.filter(c=>c.v>0).length+' células';
-  
   const g=document.getElementById('grid'); g.innerHTML='';
   S.cells.forEach((c,i)=>{
     if(c.v===0 && c.done) return;
@@ -556,7 +522,6 @@ function render(){
     d.onclick=()=>toggleCell(i);
     g.appendChild(d);
   });
-  
   const h=document.getElementById('hist');
   h.innerHTML=S.hist.length?'':'<div style="color:rgba(245,230,211,0.5);text-align:center;padding:10px">Nenhum depósito ainda 💛</div>';
   [...S.hist].reverse().forEach((d,idx)=>{
@@ -564,7 +529,6 @@ function render(){
     div.innerHTML='<span>#'+(S.hist.length-idx)+' · '+new Date(d.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span><b>+'+fmt(d.v)+'</b>';
     h.appendChild(div);
   });
-  
   if(pct>=100){
     document.getElementById('celeb').classList.add('on');
     document.getElementById('celebName').textContent = S.userName || 'guerreira';
@@ -573,9 +537,7 @@ function render(){
     document.getElementById('celebTotal').textContent = S.desafiosConcluidos.length + 1;
     document.getElementById('celebMsg').textContent = gerarMensagemFinal(S.meta, S.hist.length);
     confettiEpico();
-  } else {
-    document.getElementById('celeb').classList.remove('on');
-  }
+  } else { document.getElementById('celeb').classList.remove('on'); }
 }
 
 function gerarMensagemFinal(meta, depositos){
@@ -611,11 +573,7 @@ function depositarLivre(){
   const x = parseFloat(document.getElementById('depVal').value);
   if(!x || x<=0){ toast('⚠️ Valor inválido'); return; }
   const fal = S.meta - depositado();
-  if(x > fal + 0.01){
-    toast('⚠️ Máximo para completar: '+fmt(fal));
-    document.getElementById('depVal').value = fal.toFixed(2);
-    return;
-  }
+  if(x > fal + 0.01){ toast('⚠️ Máximo para completar: '+fmt(fal)); document.getElementById('depVal').value = fal.toFixed(2); return; }
   const livres = S.cells.map((c,i) => ({...c, i})).filter(c => !c.done);
   if (livres.length === 1) {
     const idx = livres[0].i;
@@ -646,11 +604,8 @@ function depositarLivre(){
     let idxRest = 0, botaoXmarcado = false;
     for(let i=0; i<S.cells.length; i++){
       if(S.cells[i].done) continue;
-      if(!botaoXmarcado){
-        S.cells[i].v = x; S.cells[i].done = true;
-        S.hist.push({v: x, t: Date.now(), idx: i});
-        botaoXmarcado = true;
-      } else {
+      if(!botaoXmarcado){ S.cells[i].v = x; S.cells[i].done = true; S.hist.push({v: x, t: Date.now(), idx: i}); botaoXmarcado = true; }
+      else {
         if(idxRest < novosValoresRestantes.length){ S.cells[i].v = novosValoresRestantes[idxRest]; S.cells[i].done = false; idxRest++; }
         else { S.cells[i].v = 0; S.cells[i].done = true; }
       }
@@ -742,7 +697,7 @@ function importarBackup(ev){
   const reader=new FileReader();
   reader.onload=e=>{ try{ const d=JSON.parse(e.target.result);
     if(!d.meta && !d.desafiosConcluidos){ toast('⚠️ Arquivo inválido'); return; }
-    S.meta=d.meta||0; S.maxDep=d.maxDep||50; S.n=d.n||20; S.cells=d.cells||[]; S.hist=d.hist||[];
+    S.meta=d.meta||0; S.maxDep=d.maxDep||50; S.n=d.n||50; S.cells=d.cells||[]; S.hist=d.hist||[];
     S.desafiosConcluidos=d.desafiosConcluidos||[]; S.userName=d.userName||''; S.modo=d.modo||'valor';
     salvarCofre(); mostrarCofre(); toast('📂 Backup restaurado!');
   }catch(err){ toast('❌ Erro ao ler arquivo'); } };
@@ -756,7 +711,7 @@ document.getElementById('btnLogin').addEventListener('click',login);
 document.getElementById('btnReg').addEventListener('click',registrar);
 document.getElementById('meta').addEventListener('input',ajustarSlider);
 document.getElementById('maxDep').addEventListener('input',ajustarSlider);
-document.getElementById('nCells').addEventListener('input',e=>{document.getElementById('nLabel').textContent=e.target.value;});
+document.getElementById('nCells').addEventListener('input',e=>{document.getElementById('nLabel').textContent=e.target.value; ajustarSlider();});
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal();});
 document.getElementById('depVal').addEventListener('keypress',e=>{if(e.key==='Enter')depositarLivre();});
 
