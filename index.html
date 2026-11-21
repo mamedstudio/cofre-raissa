@@ -97,6 +97,17 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
 .login-card .btn-criar{width:100%;padding:13px;background:rgba(255,255,255,0.1);color:#e8c9a0;border:1px solid rgba(212,175,140,0.3);border-radius:50px;font-size:.95em;cursor:pointer;margin-top:6px;font-family:'Inter',sans-serif}
 .login-card .divider{text-align:center;color:rgba(245,230,211,0.5);margin:14px 0;font-size:.82em}
 .login-card .msg{color:#d4a574;font-size:.82em;text-align:center;margin-top:8px}
+
+/* 🎯 NOVO: Grade de meses leves */
+.meses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin:14px 0;padding:14px;background:rgba(0,0,0,0.15);border-radius:12px;border:1px solid rgba(212,175,140,0.15)}
+.mes-toggle{padding:10px 8px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(212,175,140,0.2);border-radius:10px;cursor:pointer;transition:all .25s;text-align:center;user-select:none}
+.mes-toggle:hover{background:rgba(212,175,140,0.1);border-color:rgba(212,175,140,0.4)}
+.mes-toggle.leve{background:linear-gradient(135deg,rgba(212,175,140,0.25),rgba(184,134,11,0.2));border-color:#d4a574;color:#d4a574}
+.mes-toggle .mes-num{font-size:.75em;color:rgba(245,230,211,0.6);margin-bottom:2px}
+.mes-toggle .mes-valor{font-size:.85em;font-weight:600;color:#e8c9a0}
+.mes-toggle.leve .mes-valor{color:#d4a574}
+.mes-toggle .mes-tag{font-size:.65em;margin-top:3px;opacity:.8}
+
 @media(max-width:600px){
   .header .greeting-name{font-size:1.8em}
   .grid{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:5px}
@@ -104,6 +115,7 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
   .info-cofre .val{font-size:1.2em}
   .config-menu{right:12px;top:65px}
   .mode-selector{flex-direction:column}
+  .meses-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
 }
 </style>
 </head>
@@ -202,7 +214,14 @@ body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#4a1028 0%
       </select>
       <label>Valor sugerido por depósito (referência)</label>
       <input type="number" id="maxDepPrazo" placeholder="Ex: 100" min="5" step="1" value="100">
-      <p class="hint">4 depósitos por mês (semanal) · valores variados 💛</p>
+      
+      <!-- 🎯 NOVO: Grade de meses leves -->
+      <div id="mesesLevesSection" style="display:none">
+        <label style="margin-top:14px">🌿 Toque nos meses que serão mais leves (40% menos)</label>
+        <div class="meses-grid" id="mesesGrid"></div>
+        <p class="hint" id="mesesHint">Os meses não marcados absorvem a diferença para fechar a meta 💛</p>
+      </div>
+      
       <button class="btn btn-deposito" style="width:100%" onclick="criarPorPrazo()">✨ Criar meu cofre</button>
     </div>
   </div>
@@ -261,7 +280,7 @@ const sb = window.supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzY3BlZ3VmaXRwcnlpZWV3aXFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMjM0NTYsImV4cCI6MjExMDY5OTQ1Nn0.UPePycoAoyyCL0wP-UVkfF4MRmEJdXOSl-PqIAvaguE'
 );
 
-let S = { meta:0, n:50, maxDep:50, cells:[], hist:[], userId:null, userMail:'', userName:'', desafiosConcluidos:[], modo:'valor' };
+let S = { meta:0, n:50, maxDep:50, cells:[], hist:[], userId:null, userMail:'', userName:'', desafiosConcluidos:[], modo:'valor', mesesLeves:[] };
 const fmt = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const depositado = () => Math.round(S.cells.filter(c=>c.done).reduce((a,c)=>a+c.v,0)*100)/100;
 
@@ -305,7 +324,7 @@ async function salvarNome(){ if(!S.userId) return; await sb.from('cofres').upser
 
 async function logout(){
   await sb.auth.signOut();
-  S={meta:0,n:50,maxDep:50,cells:[],hist:[],userId:null,userMail:'',userName:'',desafiosConcluidos:[],modo:'valor'};
+  S={meta:0,n:50,maxDep:50,cells:[],hist:[],userId:null,userMail:'',userName:'',desafiosConcluidos:[],modo:'valor',mesesLeves:[]};
   document.getElementById('telaLogin').style.display='block';
   document.getElementById('telaApp').style.display='none';
   document.getElementById('userPill').style.display='none';
@@ -319,7 +338,8 @@ async function salvarCofre(){
   const { error } = await sb.from('cofres').upsert({
     user_id:S.userId, meta:S.meta, max_dep:S.maxDep, n_cells:S.n,
     depositado:depositado(), cells:S.cells, hist:S.hist,
-    desafios_concluidos:S.desafiosConcluidos, user_name:S.userName, modo:S.modo
+    desafios_concluidos:S.desafiosConcluidos, user_name:S.userName, modo:S.modo,
+    meses_leves:S.mesesLeves
   },{onConflict:'user_id'});
   if(error) toast('❌ Erro ao salvar: '+error.message);
 }
@@ -331,6 +351,7 @@ async function carregarCofre(){
     S.cells=data.cells||[]; S.hist=data.hist||[];
     S.desafiosConcluidos=data.desafios_concluidos||[];
     S.userName=data.user_name||''; S.modo=data.modo||'valor';
+    S.mesesLeves=data.meses_leves||[];
   }
 }
 
@@ -342,20 +363,79 @@ function escolherModo(modo){
   document.getElementById('formPrazo').style.display = modo==='prazo'?'block':'none';
 }
 
-// 🎯 SLIDER LIVRE: usuário escolhe quantas células quer
 function ajustarSlider(){
   const meta=parseFloat(document.getElementById('meta').value)||0;
   const maxDep=Math.max(5,parseFloat(document.getElementById('maxDep').value)||50);
   const sl=document.getElementById('nCells');
-  
   if(meta>0){
     const media = meta / sl.value;
     document.getElementById('nLabel').textContent = sl.value;
-    document.getElementById('sliderHint').textContent = 
-      `Média por célula: ${fmt(media)} · Teto sugerido: ${fmt(maxDep)} 💛`;
+    document.getElementById('sliderHint').textContent = `Média por célula: ${fmt(media)} · Sugestão: ${fmt(maxDep)} 💛`;
   } else { 
     document.getElementById('nLabel').textContent=sl.value;
     document.getElementById('sliderHint').textContent='Defina a meta para ver a média 💛';
+  }
+}
+
+// 🎯 NOVO: Gerar grade de meses leves
+function gerarGradeMeses(){
+  const meses = parseInt(document.getElementById('prazoMeses').value);
+  const meta = parseFloat(document.getElementById('metaPrazo').value)||0;
+  const grid = document.getElementById('mesesGrid');
+  const section = document.getElementById('mesesLevesSection');
+  
+  if(meta <= 0 || meses <= 0){
+    section.style.display='none';
+    return;
+  }
+  
+  section.style.display='block';
+  grid.innerHTML='';
+  
+  const media = meta / meses;
+  const valorLeve = Math.round(media * 0.6 * 100) / 100;
+  
+  for(let i=1; i<=meses; i++){
+    const div = document.createElement('div');
+    const isLeve = S.mesesLeves.includes(i);
+    div.className = 'mes-toggle' + (isLeve ? ' leve' : '');
+    div.innerHTML = `
+      <div class="mes-num">Mês ${i}</div>
+      <div class="mes-valor">${fmt(isLeve ? valorLeve : media)}</div>
+      <div class="mes-tag">${isLeve ? '🌿 Leve' : '⚖️ Normal'}</div>
+    `;
+    div.onclick = () => toggleMesLeve(i);
+    grid.appendChild(div);
+  }
+  
+  atualizarHintMeses(meses, meta);
+}
+
+function toggleMesLeve(mes){
+  const idx = S.mesesLeves.indexOf(mes);
+  if(idx >= 0){
+    S.mesesLeves.splice(idx, 1);
+  } else {
+    S.mesesLeves.push(mes);
+  }
+  gerarGradeMeses();
+}
+
+function atualizarHintMeses(meses, meta){
+  const nLeves = S.mesesLeves.length;
+  const nNormais = meses - nLeves;
+  
+  if(nLeves === 0){
+    document.getElementById('mesesHint').textContent = `Todos os meses com média de ${fmt(meta/meses)} 💛`;
+  } else if(nNormais === 0){
+    document.getElementById('mesesHint').textContent = `⚠️ Todos os meses leves! A meta não fecha. Desmarque alguns.`;
+  } else {
+    const valorLeve = (meta/meses) * 0.6;
+    const totalLeves = valorLeve * nLeves;
+    const restante = meta - totalLeves;
+    const valorNormal = restante / nNormais;
+    document.getElementById('mesesHint').textContent = 
+      `${nLeves} mês(es) leve(s) de ${fmt(valorLeve)} · ${nNormais} normal(is) de ${fmt(valorNormal)} 💛`;
   }
 }
 
@@ -363,70 +443,75 @@ function criar(){
   const m=parseFloat(document.getElementById('meta').value);
   const mx=parseFloat(document.getElementById('maxDep').value);
   if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
-  if(!mx||mx<5){ toast('⚠️ Teto mínimo R$ 5,00'); return; }
+  if(!mx||mx<5){ toast('⚠️ Sugestão mínima R$ 5,00'); return; }
   S.meta=m; S.maxDep=mx; S.n=parseInt(document.getElementById('nCells').value);
   S.cells=gerarValoresCartela(m,S.n,mx).map(v=>({v, done:false}));
-  S.hist=[]; S.modo='valor';
+  S.hist=[]; S.modo='valor'; S.mesesLeves=[];
   salvarCofre(); mostrarCofre(); toast('✨ Seu cofre está pronto!');
 }
 
+// 🎯 NOVO: Criar por prazo com meses leves
 function criarPorPrazo(){
   const m=parseFloat(document.getElementById('metaPrazo').value);
   const meses=parseInt(document.getElementById('prazoMeses').value);
   const mx=parseFloat(document.getElementById('maxDepPrazo').value)||100;
   if(!m||m<10){ toast('⚠️ Meta mínima R$ 10,00'); return; }
   if(!meses||meses<1){ toast('⚠️ Prazo mínimo 1 mês'); return; }
-  const porMes = m / meses;
-  const celulasPorMes = 4;
-  const totalCelulas = meses * celulasPorMes;
+  
+  // Validação: não pode ter todos os meses leves
+  if(S.mesesLeves.length === meses){
+    toast('⚠️ Desmarque pelo menos 1 mês!');
+    return;
+  }
+  
+  // Calcula valor de cada mês
+  const media = m / meses;
+  const valorLeve = media * 0.6; // 40% menos
+  const nLeves = S.mesesLeves.length;
+  const nNormais = meses - nLeves;
+  const totalLeves = valorLeve * nLeves;
+  const restante = m - totalLeves;
+  const valorNormal = restante / nNormais;
+  
+  // Gera células para cada mês
   let todasCelulas = [];
-  let restante = m;
-  for(let mes=0; mes<meses; mes++){
-    let valorMes = (mes === meses-1) ? restante : porMes;
-    if(mes < meses-1) restante -= porMes;
+  for(let mes=1; mes<=meses; mes++){
+    const isLeve = S.mesesLeves.includes(mes);
+    const valorMes = isLeve ? valorLeve : valorNormal;
+    const celulasPorMes = 4;
     let valoresMes = gerarValoresCartela(valorMes, celulasPorMes, mx);
     todasCelulas = todasCelulas.concat(valoresMes);
   }
-  S.meta=m; S.maxDep=mx; S.n=totalCelulas;
+  
+  S.meta=m; S.maxDep=mx; S.n=todasCelulas.length;
   S.cells=todasCelulas.map(v=>({v, done:false}));
   S.hist=[]; S.modo='prazo';
   salvarCofre(); mostrarCofre(); 
-  toast(`✨ ${meses} meses · ${totalCelulas} depósitos!`);
+  toast(`✨ ${meses} meses · ${todasCelulas.length} depósitos!`);
 }
 
-// ===== 🎯 ALGORITMO: slider define N, valores se ajustam =====
 function gerarValoresCartela(restante, n, maxDep){
   restante = Math.round(restante*100)/100;
   if(restante<=0 || n<=0) return [];
-  
-  // Mínimo = 1 real (flexível)
   const minCell = 1;
-  
-  // 1) Pesos aleatórios com variação forte
   let pesos = [];
   for(let i=0;i<n;i++) pesos.push(0.3 + Math.random()*2.0);
   const somaPesos = pesos.reduce((a,b)=>a+b,0);
-  
-  // 2) Distribui proporcionalmente (sem limite rígido de teto)
   let vals = pesos.map(p => {
     let v = restante * p / somaPesos;
     v = Math.max(minCell, v);
     return v;
   });
-
-  // 3) Corrige a soma iterativamente
   let diff = Math.round((restante - vals.reduce((a,b)=>a+b,0))*100)/100;
   let guard = 0;
   while(Math.abs(diff) >= 0.01 && guard < 5000){
     guard++;
     if(diff > 0){
-      // Adiciona na maior célula
       let i = 0;
       for(let j=1;j<vals.length;j++) if(vals[j]>vals[i]) i=j;
       vals[i] = Math.round((vals[i]+diff)*100)/100;
       diff = 0;
     } else {
-      // Subtrai da maior célula
       let i = 0;
       for(let j=1;j<vals.length;j++) if(vals[j]>vals[i]) i=j;
       const sub = Math.min(-diff, vals[i] - minCell);
@@ -434,16 +519,12 @@ function gerarValoresCartela(restante, n, maxDep){
       diff = Math.round((diff+sub)*100)/100;
     }
   }
-
-  // 4) 🔒 Força soma exata
   diff = Math.round((restante - vals.reduce((a,b)=>a+b,0))*100)/100;
   if(Math.abs(diff) >= 0.01){
     let idxMax = 0;
     for(let i=1;i<vals.length;i++) if(vals[i]>vals[idxMax]) idxMax = i;
     vals[idxMax] = Math.round((vals[idxMax]+diff)*100)/100;
   }
-
-  // 5) Embaralha
   for(let j=vals.length-1;j>0;j--){
     const k = Math.floor(Math.random()*(j+1));
     [vals[j],vals[k]] = [vals[k],vals[j]];
@@ -456,6 +537,12 @@ function mostrarSetup(){
   document.getElementById('telaCofre').style.display='none'; 
   document.getElementById('celeb').classList.remove('on'); 
   escolherModo(S.modo || 'valor');
+  // Se for modo prazo, regenera a grade
+  if((S.modo || 'valor') === 'prazo'){
+    const meta = parseFloat(document.getElementById('metaPrazo').value)||0;
+    const meses = parseInt(document.getElementById('prazoMeses').value);
+    if(meta > 0 && meses > 0) gerarGradeMeses();
+  }
 }
 function mostrarCofre(){ document.getElementById('telaSetup').style.display='none'; document.getElementById('telaCofre').style.display='block'; render(); }
 
@@ -468,7 +555,7 @@ document.addEventListener('click', e=>{
 
 function novoDesafio(){
   if(S.meta > 0){ S.desafiosConcluidos.push({ meta:S.meta, maxDep:S.maxDep, depositos:S.hist.length, concluidoEm:Date.now(), modo:S.modo }); }
-  S.meta=0; S.cells=[]; S.hist=[]; S.n=50; S.maxDep=50; S.modo='valor';
+  S.meta=0; S.cells=[]; S.hist=[]; S.n=50; S.maxDep=50; S.modo='valor'; S.mesesLeves=[];
   salvarCofre(); mostrarSetup();
   if(S.desafiosConcluidos.length > 0){
     const ultima = S.desafiosConcluidos[S.desafiosConcluidos.length-1];
@@ -623,17 +710,7 @@ function desfazer(){
 function resetar(){
   if(confirm('Resetar a cartela? Perderá o progresso.')){
     if(S.modo==='prazo'){
-      const meses = Math.round(S.n / 4);
-      const porMes = S.meta / meses;
-      let todasCelulas = [];
-      let restante = S.meta;
-      for(let mes=0; mes<meses; mes++){
-        let valorMes = (mes === meses-1) ? restante : porMes;
-        if(mes < meses-1) restante -= porMes;
-        let valoresMes = gerarValoresCartela(valorMes, 4, S.maxDep);
-        todasCelulas = todasCelulas.concat(valoresMes);
-      }
-      S.cells = todasCelulas.map(v=>({v, done:false}));
+      criarPorPrazo();
     } else {
       S.cells=gerarValoresCartela(S.meta,S.n,S.maxDep).map(v=>({v, done:false}));
     }
@@ -699,6 +776,7 @@ function importarBackup(ev){
     if(!d.meta && !d.desafiosConcluidos){ toast('⚠️ Arquivo inválido'); return; }
     S.meta=d.meta||0; S.maxDep=d.maxDep||50; S.n=d.n||50; S.cells=d.cells||[]; S.hist=d.hist||[];
     S.desafiosConcluidos=d.desafiosConcluidos||[]; S.userName=d.userName||''; S.modo=d.modo||'valor';
+    S.mesesLeves=d.mesesLeves||[];
     salvarCofre(); mostrarCofre(); toast('📂 Backup restaurado!');
   }catch(err){ toast('❌ Erro ao ler arquivo'); } };
   reader.readAsText(file);
@@ -712,6 +790,8 @@ document.getElementById('btnReg').addEventListener('click',registrar);
 document.getElementById('meta').addEventListener('input',ajustarSlider);
 document.getElementById('maxDep').addEventListener('input',ajustarSlider);
 document.getElementById('nCells').addEventListener('input',e=>{document.getElementById('nLabel').textContent=e.target.value; ajustarSlider();});
+document.getElementById('metaPrazo').addEventListener('input',gerarGradeMeses);
+document.getElementById('prazoMeses').addEventListener('change',gerarGradeMeses);
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal();});
 document.getElementById('depVal').addEventListener('keypress',e=>{if(e.key==='Enter')depositarLivre();});
 
